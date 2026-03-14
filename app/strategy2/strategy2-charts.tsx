@@ -203,7 +203,7 @@ export function TopConfigurationsTable({ results }: { results: CalibrationResult
 
 const MAX_ENTRY_SECONDS = [30, 60, 90, 120, 150, 180];
 const ENTRY_PRICE_LOWS = [0.45, 0.48, 0.50, 0.52, 0.55];
-const MIN_DEVIATIONS = [0.02, 0.03, 0.05, 0.07, 0.10];
+const MIN_DEVIATIONS = [0.05, 0.08, 0.10, 0.15];
 
 const MARKET_TYPE_OPTIONS = [
   { value: "all", label: "All" },
