@@ -8,7 +8,8 @@ RUN pnpm install --frozen-lockfile
 # Stage 2: Build the application
 FROM node:18-alpine AS builder
 WORKDIR /app
-RUN npm install -g pnpm
+COPY --from=deps /usr/local/lib/node_modules/pnpm /usr/local/lib/node_modules/pnpm
+RUN ln -s /usr/local/lib/node_modules/pnpm/bin/pnpm.cjs /usr/local/bin/pnpm
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN pnpm build
