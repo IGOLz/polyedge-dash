@@ -20,7 +20,6 @@ export function useMarkets(initialAsset: string, initialInterval: string) {
   const filteredMarkets = useMemo(
     () =>
       markets.filter((m) => {
-        if (!m.resolved) return false;
         const [mAsset, mInterval] = m.market_type?.split("_") || [];
         if (assetFilter !== "all" && mAsset !== assetFilter) return false;
         if (mInterval !== intervalFilter) return false;
