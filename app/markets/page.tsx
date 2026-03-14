@@ -1,10 +1,11 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Navbar } from "@/components/navbar";
 import { MarketChart } from "@/components/market-chart";
 import { MultiMarketChart } from "@/components/multi-market-chart";
+import { MiniTimeline } from "@/components/mini-timeline";
 import { FilterButton } from "@/components/filter-button";
 import { GlassPanel } from "@/components/ui/glass-panel";
 import { LoadingSpinner } from "@/components/loading-spinner";
@@ -16,13 +17,16 @@ import { formatUTCTime } from "@/lib/formatters";
 import type { Market } from "@/types/market";
 import { cn } from "@/lib/utils";
 
-const CHIP_LIMIT = 48;
-
-function getChipDotClass(market: Market): string {
+function getDotClass(market: Market): string {
   if (!market.resolved) return "bg-amber-400";
   if (market.final_outcome === "Up") return "bg-emerald-400";
   if (market.final_outcome === "Down") return "bg-red-400";
   return "bg-zinc-500";
+}
+
+function minuteOfDay(isoDate: string): number {
+  const d = new Date(isoDate);
+  return d.getUTCHours() * 60 + d.getUTCMinutes();
 }
 
 function DateButton({
@@ -84,29 +88,6 @@ function CustomDateButton({
   );
 }
 
-function TimeChip({
-  selected,
-  onClick,
-  children,
-}: {
-  selected: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "group relative flex-shrink-0 rounded-lg px-4 py-2.5 text-left transition-all duration-200",
-        selected
-          ? "bg-primary/[0.08] border border-primary/30"
-          : "bg-zinc-900/60 border border-zinc-800/40 hover:border-zinc-700/60 hover:bg-zinc-900/80"
-      )}
-    >
-      {children}
-    </button>
-  );
-}
 
 export default function MarketsPage() {
   return (
@@ -154,38 +135,22 @@ function MarketsContent() {
     customDateCount,
   } = useMarkets(initialAsset, initialInterval);
 
-  const [showAllChips, setShowAllChips] = useState(false);
-
-  // Reset showAll when date changes
-  const handleDateChange = (key: string) => {
-    setShowAllChips(false);
-    handleDateSelect(key);
-  };
-
-  const handleCustomDateChange = (date: string) => {
-    setShowAllChips(false);
-    handleCustomDate(date);
-  };
-
-  // Determine chips to display
-  const chips: { id: string; time: string; dots: string[] }[] = isAllAssets
+  // Build timeline dots
+  const timelineDots = isAllAssets
     ? timeGroups.map((g) => ({
         id: g.key,
         time: formatUTCTime(g.started_at),
-        dots: g.markets.map((m) => getChipDotClass(m)),
+        minuteOfDay: minuteOfDay(g.started_at),
+        dotClasses: g.markets.map((m) => getDotClass(m)),
       }))
     : filteredMarkets.map((m) => ({
         id: m.market_id,
         time: formatUTCTime(m.started_at),
-        dots: [getChipDotClass(m)],
+        minuteOfDay: minuteOfDay(m.started_at),
+        dotClasses: [getDotClass(m)],
       }));
 
-  const visibleChips =
-    !showAllChips && chips.length > CHIP_LIMIT
-      ? chips.slice(0, CHIP_LIMIT)
-      : chips;
-
-  const itemCount = chips.length;
+  const itemCount = timelineDots.length;
   const itemLabel = isAllAssets ? "time slot" : "market";
 
   return (
@@ -242,13 +207,13 @@ function MarketsContent() {
                     key={opt.key}
                     option={opt}
                     active={selectedDate === opt.key}
-                    onClick={() => handleDateChange(opt.key)}
+                    onClick={() => handleDateSelect(opt.key)}
                   />
                 ))}
                 <div className="h-4 w-px bg-zinc-800/60 mx-1" />
                 <CustomDateButton
                   active={selectedDate === "custom"}
-                  onClick={() => handleDateChange("custom")}
+                  onClick={() => handleDateSelect("custom")}
                 />
               </div>
             </div>
@@ -259,7 +224,7 @@ function MarketsContent() {
                 <input
                   type="date"
                   value={customDate}
-                  onChange={(e) => handleCustomDateChange(e.target.value)}
+                  onChange={(e) => handleCustomDate(e.target.value)}
                   className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-200 focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/30 [color-scheme:dark]"
                 />
                 {customDate && (
@@ -270,61 +235,20 @@ function MarketsContent() {
               </div>
             )}
 
-            {/* Level 2 — Time chips */}
+            {/* Mini timeline */}
             <div className="mb-4">
-              {chips.length === 0 ? (
+              {timelineDots.length === 0 ? (
                 <div className="rounded-lg border border-zinc-800/40 bg-zinc-900/40 px-4 py-6 text-center text-sm text-zinc-400">
                   {selectedDate === "custom" && customDate
                     ? "No markets found for this date"
                     : "No markets for this date"}
                 </div>
               ) : (
-                <>
-                  <div className="flex flex-wrap gap-2 pb-2">
-                    {visibleChips.map((chip) => (
-                      <TimeChip
-                        key={chip.id}
-                        selected={chip.id === selectedId}
-                        onClick={() => setSelectedId(chip.id)}
-                      >
-                        <div className="flex items-center gap-2">
-                          {chip.dots.map((dotClass, i) => (
-                            <span
-                              key={i}
-                              className={cn("h-2 w-2 rounded-full", dotClass)}
-                            />
-                          ))}
-                          <span
-                            className={cn(
-                              "font-mono text-sm font-semibold tabular-nums",
-                              chip.id === selectedId
-                                ? "text-primary"
-                                : "text-zinc-300"
-                            )}
-                          >
-                            {chip.time}
-                          </span>
-                        </div>
-                      </TimeChip>
-                    ))}
-                  </div>
-                  {chips.length > CHIP_LIMIT && !showAllChips && (
-                    <button
-                      onClick={() => setShowAllChips(true)}
-                      className="mt-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
-                    >
-                      Show all {chips.length} chips
-                    </button>
-                  )}
-                  {showAllChips && chips.length > CHIP_LIMIT && (
-                    <button
-                      onClick={() => setShowAllChips(false)}
-                      className="mt-1 text-xs font-medium text-zinc-400 hover:text-zinc-300 transition-colors"
-                    >
-                      Show less
-                    </button>
-                  )}
-                </>
+                <MiniTimeline
+                  dots={timelineDots}
+                  selectedId={selectedId}
+                  onSelect={setSelectedId}
+                />
               )}
             </div>
 
