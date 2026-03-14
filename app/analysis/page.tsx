@@ -5,7 +5,12 @@ import { AnalysisClient } from "./analysis-client";
 export const revalidate = 14400; // 4 hours
 
 export default async function AnalysisPage() {
-  const data = await getAnalysisData();
+  let data;
+  try {
+    data = await getAnalysisData();
+  } catch {
+    data = { run: null, calibration: [], trajectory: [], timeofday: [], sequential: [], heatmap: [] };
+  }
 
   if (!data.run) {
     return (
