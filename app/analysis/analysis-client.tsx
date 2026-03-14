@@ -187,15 +187,20 @@ function TabRow({
 function AnalysisSection({
   title,
   description,
+  warning,
   children,
 }: {
   title: string;
   description?: string;
+  warning?: string;
   children: React.ReactNode;
 }) {
   return (
     <section className="mt-8 md:mt-14">
       <SectionHeader title={title} description={description} />
+      {warning && (
+        <p className="mt-2 text-xs text-yellow-500/80">⚠️ {warning}</p>
+      )}
       {children}
     </section>
   );
@@ -351,7 +356,7 @@ function EdgeScannerSection({ data }: { data: CalibrationRow[] }) {
     .filter((r) => {
       const pv = parseFloat(String(r.p_value));
       const sc = Number(r.sample_count);
-      return pv < 0.10 && sc >= 15 && r.market_type === marketType;
+      return pv < 0.15 && sc >= 5 && r.market_type === marketType;
     })
     .map((r) => ({
       ...r,
@@ -402,7 +407,8 @@ function EdgeScannerSection({ data }: { data: CalibrationRow[] }) {
   return (
     <AnalysisSection
       title="Edge Scanner"
-      description="Price buckets where the market is statistically mispricing the contract. Only shows buckets that pass p < 0.10 significance test with at least 15 samples."
+      description="Price buckets where the market is statistically mispricing the contract. Only shows buckets that pass p < 0.15 significance test with at least 5 samples."
+      warning="Exploratory mode — low sample sizes mean high noise. Results are indicative only until 500+ markets per type are collected."
     >
       <GlassPanel variant="glow-tr">
         {/* Market type filter bar */}
@@ -1189,7 +1195,7 @@ export function AnalysisClient({ data }: { data: AnalysisData & { run: AnalysisR
               <p className="relative mt-2 font-mono text-2xl font-bold tabular-nums text-zinc-50">
                 {calibration.filter((r) => {
                   const pv = parseFloat(String(r.p_value));
-                  return pv < 0.10 && Number(r.sample_count) >= 15;
+                  return pv < 0.15 && Number(r.sample_count) >= 5;
                 }).length}
               </p>
             </div>
