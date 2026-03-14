@@ -349,10 +349,9 @@ function EdgeScannerSection({ data }: { data: CalibrationRow[] }) {
 
   const edges = data
     .filter((r) => {
-      const sigVal: unknown = r.significant;
-      const sig = sigVal === true || sigVal === "true" || sigVal === "t" || sigVal === 1;
+      const pv = parseFloat(String(r.p_value));
       const sc = Number(r.sample_count);
-      return sig && sc >= 15 && r.market_type === marketType;
+      return pv < 0.10 && sc >= 15 && r.market_type === marketType;
     })
     .map((r) => ({
       ...r,
@@ -403,7 +402,7 @@ function EdgeScannerSection({ data }: { data: CalibrationRow[] }) {
   return (
     <AnalysisSection
       title="Edge Scanner"
-      description="Price buckets where the market is statistically mispricing the contract. Only shows buckets that pass p < 0.05 significance test with at least 15 samples."
+      description="Price buckets where the market is statistically mispricing the contract. Only shows buckets that pass p < 0.10 significance test with at least 15 samples."
     >
       <GlassPanel variant="glow-tr">
         {/* Market type filter bar */}
@@ -1189,8 +1188,8 @@ export function AnalysisClient({ data }: { data: AnalysisData & { run: AnalysisR
               <p className="relative text-xs font-semibold uppercase tracking-[0.15em] text-primary/60">Edges Found</p>
               <p className="relative mt-2 font-mono text-2xl font-bold tabular-nums text-zinc-50">
                 {calibration.filter((r) => {
-                  const sv: unknown = r.significant;
-                  return (sv === true || sv === "true" || sv === "t" || sv === 1) && Number(r.sample_count) >= 15;
+                  const pv = parseFloat(String(r.p_value));
+                  return pv < 0.10 && Number(r.sample_count) >= 15;
                 }).length}
               </p>
             </div>
