@@ -31,19 +31,22 @@ export function Navbar() {
 
           <div className="h-4 w-px bg-zinc-800/60" />
 
-          <div className="flex items-center gap-0.5">
+          <div className="flex items-center gap-1">
             {NAV_LINKS.map(({ href, label }) => (
               <Link
                 key={href}
                 href={href}
                 className={cn(
-                  "rounded-lg px-2.5 md:px-3 py-1 md:py-1.5 text-sm font-medium transition-all duration-200",
+                  "relative px-2.5 md:px-3 py-3 md:py-4 text-sm font-medium transition-colors duration-200",
                   pathname === href
-                    ? "bg-primary/10 text-primary"
-                    : "text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/50"
+                    ? "text-primary"
+                    : "text-zinc-500 hover:text-zinc-200"
                 )}
               >
                 {label}
+                {pathname === href && (
+                  <span className="absolute inset-x-1 bottom-0 h-0.5 rounded-full bg-primary" />
+                )}
               </Link>
             ))}
           </div>
