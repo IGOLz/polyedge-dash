@@ -159,7 +159,7 @@ function RunMetadata({ run }: { run: CalibrationRun }) {
 // ---------------------------------------------------------------------------
 
 function BestConfiguration({ results }: { results: CalibrationResult[] }) {
-  const eligible = results.filter((r) => r.trades_taken >= 20 && r.market_type === "all");
+  const eligible = results.filter((r) => r.trades_taken >= 20);
   if (eligible.length === 0) {
     return (
       <section className="mb-8 md:mb-14">

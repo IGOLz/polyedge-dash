@@ -4,21 +4,22 @@ import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { SectionHeader } from "@/components/section-header";
 import { GlassPanel } from "@/components/ui/glass-panel";
-import { getFarmingData, type FarmingResult, type FarmingRun } from "@/lib/farming-queries";
-import { StrategyCharts, TopConfigurationsTable } from "./strategy-charts";
+import { getStreakStrategyData, type StreakResult, type StreakRun } from "@/lib/streak-queries";
+import { Strategy4Charts, TopConfigurationsTable } from "./strategy4-charts";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-const getCachedFarmingData = unstable_cache(
+const getCachedStreakData = unstable_cache(
   async () => {
     try {
-      return await getFarmingData();
-    } catch {
+      return await getStreakStrategyData();
+    } catch (error) {
+      console.error("[Strategy4] Failed to fetch streak data:", error);
       return { run: null, results: [] };
     }
   },
-  ["farming-data"],
+  ["streak-strategy-data"],
   { revalidate: 14400 }
 );
 
@@ -41,10 +42,6 @@ function formatPnl(val: number): string {
   return `${prefix}${Math.abs(val).toFixed(2)}`;
 }
 
-function formatCents(val: number): string {
-  return `${(val * 100).toFixed(0)}¢`;
-}
-
 // ---------------------------------------------------------------------------
 // Section 1 — Strategy Explanation
 // ---------------------------------------------------------------------------
@@ -52,37 +49,34 @@ function formatCents(val: number): string {
 function StrategyExplanation() {
   return (
     <section className="mb-8 md:mb-14">
-      <SectionHeader title="What is Probability Farming?" />
+      <SectionHeader title="What is the Streak Reversal Strategy?" />
       <GlassPanel variant="glow-tl">
         <div className="relative p-6 space-y-6">
           <div>
             <h3 className="mb-2 text-sm font-semibold text-primary/80">The Idea</h3>
             <p className="text-sm leading-relaxed text-zinc-300">
-              This strategy targets 15-minute crypto prediction markets on Polymarket. Instead of entering at the start of a market window, it waits. Once either side (Up or Down) reaches a high probability zone — for example 85¢ — it enters a position on that side and holds until resolution.
+              This strategy bets on mean reversion after consecutive streaks of the same outcome. If BTC 5m has resolved Up three times in a row, the strategy bets Down on the next window. If it has resolved Down three times in a row, it bets Up. The theory is that prediction markets overcorrect after streaks, creating a temporary edge in the opposite direction.
             </p>
-            <p className="mt-2 text-sm leading-relaxed text-zinc-300">
-              The logic: a contract priced at 85¢ implies an 85% chance of winning. If the market is correctly calibrated, entering late at high probability should produce consistent small gains.
+          </div>
+
+          <div>
+            <h3 className="mb-2 text-sm font-semibold text-primary/80">The Evidence</h3>
+            <p className="text-sm leading-relaxed text-zinc-300">
+              The Lab Sequential Analysis found several streak patterns with meaningful deviation from 50%: eth_5m after DDD &rarr; 73.3% Up, xrp_5m after UDDD &rarr; 72.2% Up, sol_5m after DDDU &rarr; 62.5% Up. These patterns suggest streaks do not persist indefinitely and tend to reverse.
             </p>
           </div>
 
           <div>
             <h3 className="mb-2 text-sm font-semibold text-primary/80">The Parameters</h3>
             <p className="text-sm leading-relaxed text-zinc-300">
-              Three values control the strategy. The <span className="text-zinc-100 font-medium">Trigger Point</span> is the price threshold that activates a trade — for example 0.85 means enter when either Up or Down reaches 85¢. The <span className="text-zinc-100 font-medium">Exit Point</span> is the stop-loss — if the price reverses against the position and drops to this level, the trade is closed early to cap the loss. The <span className="text-zinc-100 font-medium">Trigger Minute</span> is the minimum time that must pass before the bot starts watching for an entry — earlier entries have more time for reversals, later entries have less opportunity to find the exact price.
-            </p>
-          </div>
-
-          <div>
-            <h3 className="mb-2 text-sm font-semibold text-primary/80">The Risk</h3>
-            <p className="text-sm leading-relaxed text-zinc-300">
-              The main risk is reversal. A contract can reach 85¢ and then drop all the way to 0¢ if the underlying asset price moves sharply. The stop-loss (Exit Point) partially manages this by cutting losses early, but in fast markets it may not fill at the exact price.
+              The <span className="text-zinc-100 font-medium">Streak Length</span> is how many consecutive identical outcomes are required before entering — longer streaks mean stronger signal but fewer trade opportunities. The <span className="text-zinc-100 font-medium">Streak Direction</span> controls whether to fade Up streaks, Down streaks, or both.
             </p>
           </div>
 
           <div>
             <h3 className="mb-2 text-sm font-semibold text-primary/80">What This Page Shows</h3>
             <p className="text-sm leading-relaxed text-zinc-300">
-              The backtest below runs all combinations of these three parameters plus a minimum coin delta filter (minimum price movement from the window open before entering) against all historical 15-minute markets collected. The goal is to find which parameter combinations produce positive returns after fees. Fees are calculated at 2% per trade. Results with fewer than 20 trades are excluded from rankings.
+              The backtest tests all streak length and direction combinations. Since there is no stop-loss, win rate directly determines profitability. Results with fewer than 10 trades are excluded (streak opportunities are rarer so the minimum is lower).
             </p>
           </div>
 
@@ -101,7 +95,7 @@ function StrategyExplanation() {
 // Section 2 — Run Metadata
 // ---------------------------------------------------------------------------
 
-function RunMetadata({ run }: { run: FarmingRun }) {
+function RunMetadata({ run }: { run: StreakRun }) {
   return (
     <div className="mb-8">
       <div className="relative grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-primary/20 bg-primary/[0.06] sm:grid-cols-4">
@@ -153,12 +147,12 @@ function RunMetadata({ run }: { run: FarmingRun }) {
 // Section 3 — Best Configuration
 // ---------------------------------------------------------------------------
 
-function BestConfiguration({ results }: { results: FarmingResult[] }) {
-  const eligible = results.filter((r) => r.trades_taken >= 20);
+function BestConfiguration({ results }: { results: StreakResult[] }) {
+  const eligible = results.filter((r) => r.trades_taken >= 10);
   if (eligible.length === 0) {
     return (
       <section className="mb-8 md:mb-14">
-        <SectionHeader title="Best Configuration" description="The single parameter combination with highest total PnL across all 15m markets, minimum 20 trades." />
+        <SectionHeader title="Best Configuration" description="The single parameter combination with highest total PnL across all markets, minimum 10 trades." />
         <p className="text-sm text-zinc-500">Not enough data to determine a best configuration yet.</p>
       </section>
     );
@@ -174,14 +168,14 @@ function BestConfiguration({ results }: { results: FarmingResult[] }) {
     { label: "Win Rate", value: `${winRatePct.toFixed(1)}%`, color: "text-zinc-50", large: true },
     { label: "Total Trades", value: best.trades_taken.toLocaleString("en-US"), color: "text-zinc-50", large: true },
     { label: "Wins", value: best.wins.toLocaleString("en-US"), color: "text-emerald-400", large: false },
-    { label: "Stop Losses", value: best.stop_losses.toLocaleString("en-US"), color: "text-yellow-400", large: false },
-    { label: "Avg Entry Price", value: formatCents(best.avg_entry_price), color: "text-zinc-50", large: false },
-    { label: "Avg Coin Delta", value: best.avg_coin_delta.toFixed(3), color: "text-zinc-50", large: false },
+    { label: "Losses", value: best.losses.toLocaleString("en-US"), color: "text-red-400", large: false },
+    { label: "Streak Length", value: String(best.streak_length), color: "text-cyan-400", large: false },
+    { label: "Up Trades / Down Trades", value: `${best.up_trades} / ${best.down_trades}`, color: "text-cyan-400", large: false },
   ];
 
   return (
     <section className="mb-8 md:mb-14">
-      <SectionHeader title="Best Configuration" description="The single parameter combination with highest total PnL across all 15m markets, minimum 20 trades." />
+      <SectionHeader title="Best Configuration" description="The single parameter combination with highest total PnL across all markets, minimum 10 trades." />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
         {statCards.map((card) => (
@@ -204,7 +198,7 @@ function BestConfiguration({ results }: { results: FarmingResult[] }) {
   );
 }
 
-// Section 4 is in strategy-charts.tsx (client component for expand/collapse)
+// Section 4 is in strategy4-charts.tsx (client component for expand/collapse)
 
 // ---------------------------------------------------------------------------
 // No-data empty state
@@ -216,7 +210,7 @@ function EmptyState() {
       <Navbar />
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 md:px-6 flex items-center justify-center">
         <div className="text-center">
-          <div className="mb-4 text-4xl text-zinc-600">🌾</div>
+          <div className="mb-4 text-4xl text-zinc-600">🔄</div>
           <h2 className="text-lg font-semibold text-zinc-200 mb-2">No backtest data yet</h2>
           <p className="text-sm text-zinc-500 max-w-md">
             The analysis runs automatically every 4 hours. Check back soon.
@@ -232,8 +226,8 @@ function EmptyState() {
 // Main Page
 // ---------------------------------------------------------------------------
 
-export default async function StrategyPage() {
-  const data = await getCachedFarmingData();
+export default async function Strategy4Page() {
+  const data = await getCachedStreakData();
 
   if (!data.run) {
     return <EmptyState />;
@@ -259,9 +253,9 @@ export default async function StrategyPage() {
 
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-zinc-100 mb-1">Farming Strategy</h1>
+          <h1 className="text-2xl font-bold text-zinc-100 mb-1">Streak Reversal Strategy</h1>
           <p className="text-sm text-zinc-400 mb-4">
-            Probability farming backtest results across all parameter combinations
+            Streak reversal strategy backtest results across all parameter combinations
           </p>
         </div>
 
@@ -278,7 +272,7 @@ export default async function StrategyPage() {
         <TopConfigurationsTable results={results} />
 
         {/* Sections 5, 6, 7 — Client components (charts) */}
-        <StrategyCharts results={results} />
+        <Strategy4Charts results={results} />
       </main>
 
       <Footer />

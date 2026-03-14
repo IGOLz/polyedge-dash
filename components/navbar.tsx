@@ -16,6 +16,8 @@ const NAV_LINKS = [
 const STRATEGY_LINKS = [
   { href: "/strategy", label: "Strategy 1 — Farming" },
   { href: "/strategy2", label: "Strategy 2 — Calibration" },
+  { href: "/strategy3", label: "Strategy 3 — Momentum" },
+  { href: "/strategy4", label: "Strategy 4 — Streak Reversal" },
 ];
 
 // ---------------------------------------------------------------------------
