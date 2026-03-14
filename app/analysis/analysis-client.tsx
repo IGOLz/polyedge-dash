@@ -37,6 +37,7 @@ interface CalibrationRow {
   actual_win_rate: number;
   deviation: number;
   significant: boolean;
+  p_value: number;
 }
 
 interface TrajectoryRow {
