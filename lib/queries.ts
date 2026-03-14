@@ -218,6 +218,221 @@ export async function getCalibrationData(secondsIntoWindow: number = 60) {
   `);
 }
 
+export async function getCalibrationHeatmapData() {
+  const timeOffsets = [30, 60, 90, 120, 150, 180, 240, 300];
+
+  const rows = await query<{
+    market_type: string;
+    time_offset: string;
+    price_bucket: string;
+    sample_count: string;
+    up_win_rate: string;
+  }>(`
+    WITH tick_snapshots AS (
+      SELECT
+        mt.market_id,
+        mo.market_type,
+        mo.final_outcome,
+        mt.up_price,
+        ROUND(EXTRACT(EPOCH FROM (mt.time - mo.started_at)))::int AS secs_in
+      FROM market_ticks mt
+      JOIN market_outcomes mo ON mt.market_id = mo.market_id
+      WHERE mo.resolved = TRUE
+        AND mo.final_outcome IN ('Up', 'Down')
+        AND EXTRACT(EPOCH FROM (mt.time - mo.started_at)) BETWEEN 25 AND 305
+    ),
+    bucketed AS (
+      SELECT DISTINCT ON (market_id, time_bucket)
+        market_id,
+        market_type,
+        final_outcome,
+        up_price,
+        CASE
+          WHEN secs_in BETWEEN 25 AND 35 THEN 30
+          WHEN secs_in BETWEEN 55 AND 65 THEN 60
+          WHEN secs_in BETWEEN 85 AND 95 THEN 90
+          WHEN secs_in BETWEEN 115 AND 125 THEN 120
+          WHEN secs_in BETWEEN 145 AND 155 THEN 150
+          WHEN secs_in BETWEEN 175 AND 185 THEN 180
+          WHEN secs_in BETWEEN 235 AND 245 THEN 240
+          WHEN secs_in BETWEEN 295 AND 305 THEN 300
+        END AS time_bucket
+      FROM tick_snapshots
+      WHERE CASE
+          WHEN secs_in BETWEEN 25 AND 35 THEN TRUE
+          WHEN secs_in BETWEEN 55 AND 65 THEN TRUE
+          WHEN secs_in BETWEEN 85 AND 95 THEN TRUE
+          WHEN secs_in BETWEEN 115 AND 125 THEN TRUE
+          WHEN secs_in BETWEEN 145 AND 155 THEN TRUE
+          WHEN secs_in BETWEEN 175 AND 185 THEN TRUE
+          WHEN secs_in BETWEEN 235 AND 245 THEN TRUE
+          WHEN secs_in BETWEEN 295 AND 305 THEN TRUE
+          ELSE FALSE
+        END
+      ORDER BY market_id, time_bucket, secs_in
+    )
+    SELECT
+      market_type,
+      time_bucket AS time_offset,
+      ROUND(up_price * 20) / 20 AS price_bucket,
+      COUNT(*) AS sample_count,
+      ROUND(AVG((final_outcome = 'Up')::int::numeric) * 100, 1) AS up_win_rate
+    FROM bucketed
+    WHERE time_bucket IS NOT NULL
+    GROUP BY market_type, time_bucket, ROUND(up_price * 20) / 20
+    HAVING COUNT(*) >= 3
+    ORDER BY market_type, time_bucket, price_bucket
+  `);
+
+  return rows;
+}
+
+export async function getEdgeScannerData() {
+  // Historical edge scanner: find price buckets where actual win rate
+  // deviates from implied probability (the price itself).
+  // Edge = actual_win_rate - (price_bucket * 100)
+  // e.g. price at 80¢ implies 80% Up, but historically wins 90% → +10% edge
+  const rows = await query<{
+    market_type: string;
+    time_window: string;
+    price_bucket: string;
+    implied_prob: string;
+    actual_win_rate: string;
+    edge: string;
+    sample_count: string;
+    direction: string;
+  }>(`
+    WITH tick_at_times AS (
+      SELECT DISTINCT ON (mt.market_id, time_bucket)
+        mt.market_id,
+        mo.market_type,
+        mo.final_outcome,
+        mt.up_price,
+        CASE
+          WHEN EXTRACT(EPOCH FROM (mt.time - mo.started_at)) BETWEEN 25 AND 35 THEN 30
+          WHEN EXTRACT(EPOCH FROM (mt.time - mo.started_at)) BETWEEN 55 AND 65 THEN 60
+          WHEN EXTRACT(EPOCH FROM (mt.time - mo.started_at)) BETWEEN 115 AND 125 THEN 120
+          WHEN EXTRACT(EPOCH FROM (mt.time - mo.started_at)) BETWEEN 175 AND 185 THEN 180
+        END AS time_bucket
+      FROM market_ticks mt
+      JOIN market_outcomes mo ON mt.market_id = mo.market_id
+      WHERE mo.resolved = TRUE
+        AND mo.final_outcome IN ('Up', 'Down')
+        AND (
+          EXTRACT(EPOCH FROM (mt.time - mo.started_at)) BETWEEN 25 AND 35
+          OR EXTRACT(EPOCH FROM (mt.time - mo.started_at)) BETWEEN 55 AND 65
+          OR EXTRACT(EPOCH FROM (mt.time - mo.started_at)) BETWEEN 115 AND 125
+          OR EXTRACT(EPOCH FROM (mt.time - mo.started_at)) BETWEEN 175 AND 185
+        )
+      ORDER BY mt.market_id, time_bucket, ABS(EXTRACT(EPOCH FROM (mt.time - mo.started_at)) - CASE
+          WHEN EXTRACT(EPOCH FROM (mt.time - mo.started_at)) BETWEEN 25 AND 35 THEN 30
+          WHEN EXTRACT(EPOCH FROM (mt.time - mo.started_at)) BETWEEN 55 AND 65 THEN 60
+          WHEN EXTRACT(EPOCH FROM (mt.time - mo.started_at)) BETWEEN 115 AND 125 THEN 120
+          ELSE 180
+        END)
+    ),
+    edges AS (
+      SELECT
+        market_type,
+        time_bucket,
+        ROUND(up_price * 20) / 20 AS price_bucket,
+        ROUND(up_price * 20) / 20 * 100 AS implied_prob,
+        ROUND(AVG((final_outcome = 'Up')::int::numeric) * 100, 1) AS actual_win_rate,
+        ROUND(AVG((final_outcome = 'Up')::int::numeric) * 100, 1) - ROUND(up_price * 20) / 20 * 100 AS edge,
+        COUNT(*) AS sample_count
+      FROM tick_at_times
+      WHERE time_bucket IS NOT NULL
+      GROUP BY market_type, time_bucket, ROUND(up_price * 20) / 20
+      HAVING COUNT(*) >= 10
+    )
+    SELECT
+      market_type,
+      time_bucket AS time_window,
+      price_bucket,
+      implied_prob,
+      actual_win_rate,
+      edge,
+      sample_count,
+      CASE WHEN edge > 0 THEN 'Up' ELSE 'Down' END AS direction
+    FROM edges
+    WHERE ABS(edge) >= 3
+    ORDER BY ABS(edge) DESC
+    LIMIT 30
+  `);
+
+  return rows;
+}
+
+export async function getTimeOfDayData() {
+  const rows = await query<{
+    market_type: string;
+    hour_utc: string;
+    total: string;
+    up_wins: string;
+    up_win_rate: string;
+  }>(`
+    SELECT
+      market_type,
+      EXTRACT(HOUR FROM started_at) AS hour_utc,
+      COUNT(*) AS total,
+      SUM(CASE WHEN final_outcome = 'Up' THEN 1 ELSE 0 END) AS up_wins,
+      ROUND(AVG((final_outcome = 'Up')::int::numeric) * 100, 1) AS up_win_rate
+    FROM market_outcomes
+    WHERE resolved = TRUE AND final_outcome IN ('Up', 'Down')
+    GROUP BY market_type, EXTRACT(HOUR FROM started_at)
+    ORDER BY market_type, hour_utc
+  `);
+
+  return rows;
+}
+
+export async function getCrossAssetCorrelation() {
+  // For markets that started at the same time with same interval, check outcome correlation
+  const rows = await query<{
+    asset_a: string;
+    asset_b: string;
+    interval: string;
+    total_pairs: string;
+    both_up: string;
+    both_down: string;
+    a_up_b_down: string;
+    a_down_b_up: string;
+    correlation_pct: string;
+  }>(`
+    WITH resolved_markets AS (
+      SELECT
+        market_type,
+        SPLIT_PART(market_type, '_', 1) AS asset,
+        SPLIT_PART(market_type, '_', 2) AS interval,
+        started_at,
+        final_outcome
+      FROM market_outcomes
+      WHERE resolved = TRUE AND final_outcome IN ('Up', 'Down')
+    )
+    SELECT
+      a.asset AS asset_a,
+      b.asset AS asset_b,
+      a.interval,
+      COUNT(*) AS total_pairs,
+      SUM(CASE WHEN a.final_outcome = 'Up' AND b.final_outcome = 'Up' THEN 1 ELSE 0 END) AS both_up,
+      SUM(CASE WHEN a.final_outcome = 'Down' AND b.final_outcome = 'Down' THEN 1 ELSE 0 END) AS both_down,
+      SUM(CASE WHEN a.final_outcome = 'Up' AND b.final_outcome = 'Down' THEN 1 ELSE 0 END) AS a_up_b_down,
+      SUM(CASE WHEN a.final_outcome = 'Down' AND b.final_outcome = 'Up' THEN 1 ELSE 0 END) AS a_down_b_up,
+      ROUND(
+        (SUM(CASE WHEN a.final_outcome = b.final_outcome THEN 1 ELSE 0 END)::numeric / COUNT(*)) * 100, 1
+      ) AS correlation_pct
+    FROM resolved_markets a
+    JOIN resolved_markets b ON a.started_at = b.started_at
+      AND a.interval = b.interval
+      AND a.asset < b.asset
+    GROUP BY a.asset, b.asset, a.interval
+    HAVING COUNT(*) >= 10
+    ORDER BY correlation_pct DESC
+  `);
+
+  return rows;
+}
+
 export async function getStreakData() {
   const rows = await query<{
     market_type: string;

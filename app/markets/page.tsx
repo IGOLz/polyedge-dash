@@ -1,9 +1,10 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Navbar } from "@/components/navbar";
 import { MarketChart } from "@/components/market-chart";
+import { MarketReplay } from "@/components/market-replay";
 import { MultiMarketChart } from "@/components/multi-market-chart";
 import { FilterButton } from "@/components/filter-button";
 import { OutcomeDot } from "@/components/outcome-dot";
@@ -74,6 +75,8 @@ function MarketsContent() {
     handleIntervalFilter,
   } = useMarkets(initialAsset, initialInterval);
 
+  const [replayMode, setReplayMode] = useState(false);
+
   const itemCount = isAllAssets ? timeGroups.length : filteredMarkets.length;
   const itemLabel = isAllAssets ? "time slot" : "market";
 
@@ -108,6 +111,23 @@ function MarketsContent() {
                 />
               ))}
             </div>
+
+            {!isAllAssets && (
+              <button
+                onClick={() => setReplayMode((r) => !r)}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                  replayMode
+                    ? "bg-primary/20 text-primary border border-primary/30"
+                    : "bg-zinc-800/60 text-zinc-400 border border-zinc-800/40 hover:text-zinc-200 hover:border-zinc-700/60"
+                )}
+              >
+                <svg width="12" height="12" viewBox="0 0 14 14" fill="currentColor">
+                  <path d="M2 1.5L12 7L2 12.5V1.5Z" />
+                </svg>
+                Replay
+              </button>
+            )}
 
             <span className="ml-auto text-xs font-medium text-zinc-400">
               {itemCount} {itemLabel}{itemCount !== 1 ? "s" : ""}
@@ -179,7 +199,11 @@ function MarketsContent() {
                   </div>
                 )
               ) : selectedMarket ? (
-                <MarketChart market={selectedMarket} />
+                replayMode ? (
+                  <MarketReplay market={selectedMarket} />
+                ) : (
+                  <MarketChart market={selectedMarket} />
+                )
               ) : (
                 <div className="flex flex-1 items-center justify-center text-sm text-zinc-400">
                   {filteredMarkets.length === 0 ? "No markets match this filter" : "Select a market above"}

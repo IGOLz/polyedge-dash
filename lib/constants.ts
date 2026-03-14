@@ -38,3 +38,19 @@ export const CHART_BASE_TIME = 1704067200;
 
 export const POLLING_INTERVAL_MS = 60_000;
 export const REVALIDATE_SECONDS = 60;
+
+/** Cache duration for analytics sections (edge scanner, heatmap, etc.) */
+export const ANALYTICS_CACHE_SECONDS = 3600;
+
+/** Sort market types: 5m before 15m, then by asset name */
+export function sortMarketTypes(types: string[]): string[] {
+  const order = MARKET_TYPES as readonly string[];
+  return [...types].sort((a, b) => {
+    const ia = order.indexOf(a);
+    const ib = order.indexOf(b);
+    if (ia !== -1 && ib !== -1) return ia - ib;
+    if (ia !== -1) return -1;
+    if (ib !== -1) return 1;
+    return a.localeCompare(b);
+  });
+}
