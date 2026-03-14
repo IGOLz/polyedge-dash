@@ -9,7 +9,7 @@ import {
   ResponsiveContainer, Tooltip as RechartsTooltip, Cell,
   ScatterChart, Scatter, ZAxis,
 } from "recharts";
-import type { FarmingResult } from "@/lib/farming-queries";
+import type { CalibrationResult } from "@/lib/calibration-queries";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -22,6 +22,10 @@ function formatPnl(val: number): string {
 
 function formatCents(val: number): string {
   return `${(val * 100).toFixed(0)}¢`;
+}
+
+function formatRange(low: number, high: number): string {
+  return `${formatCents(low)}–${formatCents(high)}`;
 }
 
 function pnlColor(val: number): string {
@@ -91,16 +95,12 @@ function ChartTooltipContent({ active, payload, label, formatter }: {
 }
 
 // ---------------------------------------------------------------------------
-// Section 5 — Parameter Impact Charts
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
 // Section 4 — Top Configurations Table (expandable)
 // ---------------------------------------------------------------------------
 
 const INITIAL_ROWS = 5;
 
-export function TopConfigurationsTable({ results }: { results: FarmingResult[] }) {
+export function TopConfigurationsTable({ results }: { results: CalibrationResult[] }) {
   const [expanded, setExpanded] = useState(false);
 
   const eligible = results.filter((r) => r.trades_taken >= 20);
@@ -127,13 +127,13 @@ export function TopConfigurationsTable({ results }: { results: FarmingResult[] }
             <thead>
               <tr className="border-b border-zinc-800/40">
                 <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Market</th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Trigger</th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Stop-Loss</th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Min Min</th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Min Delta</th>
+                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Entry Range</th>
+                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Max Sec</th>
+                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Min Dev</th>
                 <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Trades</th>
                 <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Win Rate</th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">W / SL</th>
+                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">W / L</th>
+                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Up / Down</th>
                 <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Total PnL</th>
                 <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">ROI</th>
                 <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Avg PnL</th>
@@ -153,16 +153,18 @@ export function TopConfigurationsTable({ results }: { results: FarmingResult[] }
                     )}
                   >
                     <td className="px-4 py-3 text-sm text-zinc-300">{mtLabel}</td>
-                    <td className="px-4 py-3 font-mono text-sm text-zinc-200">{formatCents(r.trigger_point)}</td>
-                    <td className="px-4 py-3 font-mono text-sm text-zinc-200">{formatCents(r.exit_point)}</td>
-                    <td className="px-4 py-3 font-mono text-sm text-zinc-400">{r.trigger_minutes}</td>
-                    <td className="px-4 py-3 font-mono text-sm text-zinc-400">{r.min_coin_delta.toFixed(2)}</td>
+                    <td className="px-4 py-3 font-mono text-sm text-zinc-200">{formatRange(r.entry_price_low, r.entry_price_high)}</td>
+                    <td className="px-4 py-3 font-mono text-sm text-zinc-400">{r.max_entry_seconds}s</td>
+                    <td className="px-4 py-3 font-mono text-sm text-zinc-400">{r.min_deviation.toFixed(2)}</td>
                     <td className="px-4 py-3 font-mono text-sm text-zinc-400">{r.trades_taken}</td>
                     <td className={cn("px-4 py-3 font-mono text-sm font-semibold", winRateColor(wrPct))}>
                       {wrPct.toFixed(1)}%
                     </td>
                     <td className="px-4 py-3 font-mono text-sm text-zinc-400">
-                      {r.wins} / {r.stop_losses}
+                      {r.wins} / {r.losses}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-sm text-zinc-400">
+                      {r.up_trades} / {r.down_trades}
                     </td>
                     <td className={cn("px-4 py-3 font-mono text-sm font-bold", pnlColor(r.total_pnl))}>
                       {formatPnl(r.total_pnl)}
@@ -199,42 +201,21 @@ export function TopConfigurationsTable({ results }: { results: FarmingResult[] }
 // Section 5 — Parameter Impact Charts
 // ---------------------------------------------------------------------------
 
-const TRIGGER_POINTS = [0.65, 0.70, 0.75, 0.80, 0.85, 0.90];
-const EXIT_POINTS = [0.30, 0.40, 0.50, 0.60];
-const TRIGGER_MINUTES = [1, 2, 3, 5, 7, 10, 14];
-const MIN_DELTAS = [0.00, 0.05, 0.10, 0.15];
+const MAX_ENTRY_SECONDS = [30, 60, 90, 120, 150, 180];
+const ENTRY_PRICE_LOWS = [0.45, 0.48, 0.50, 0.52, 0.55];
+const MIN_DEVIATIONS = [0.02, 0.03, 0.05, 0.07, 0.10];
 
-function groupByParam(
-  results: FarmingResult[],
-  accessor: (r: FarmingResult) => number,
-  buckets: number[]
-): { param: string; avgPnl: number; raw: number }[] {
-  const map = new Map<number, number[]>();
-  for (const b of buckets) map.set(b, []);
-
-  for (const r of results) {
-    if (r.trades_taken < 20) continue;
-    const val = accessor(r);
-    // Find closest bucket
-    let closest = buckets[0];
-    let minDist = Math.abs(val - closest);
-    for (const b of buckets) {
-      const dist = Math.abs(val - b);
-      if (dist < minDist) { closest = b; minDist = dist; }
-    }
-    map.get(closest)?.push(r.total_pnl);
-  }
-
-  return buckets.map((b) => {
-    const values = map.get(b) || [];
-    const avg = values.length > 0 ? values.reduce((a, c) => a + c, 0) / values.length : 0;
-    return { param: formatCents(b), avgPnl: avg, raw: b };
-  });
-}
+const MARKET_TYPE_OPTIONS = [
+  { value: "all", label: "All" },
+  { value: "btc_5m", label: "BTC 5m" },
+  { value: "eth_5m", label: "ETH 5m" },
+  { value: "sol_5m", label: "SOL 5m" },
+  { value: "xrp_5m", label: "XRP 5m" },
+];
 
 function groupByParamRaw(
-  results: FarmingResult[],
-  accessor: (r: FarmingResult) => number,
+  results: CalibrationResult[],
+  accessor: (r: CalibrationResult) => number,
   buckets: number[],
   labelFn: (v: number) => string
 ): { param: string; avgPnl: number; raw: number }[] {
@@ -283,13 +264,23 @@ function ParameterImpactChart({ title, data }: { title: string; data: { param: s
   );
 }
 
-function ParameterImpactSection({ results }: { results: FarmingResult[] }) {
+function ParameterImpactSection({ results }: { results: CalibrationResult[] }) {
   const allResults = results.filter((r) => r.market_type === "all");
 
-  const triggerData = useMemo(() => groupByParam(allResults, (r) => r.trigger_point, TRIGGER_POINTS), [allResults]);
-  const exitData = useMemo(() => groupByParam(allResults, (r) => r.exit_point, EXIT_POINTS), [allResults]);
-  const minuteData = useMemo(() => groupByParamRaw(allResults, (r) => r.trigger_minutes, TRIGGER_MINUTES, (v) => `${v}m`), [allResults]);
-  const deltaData = useMemo(() => groupByParamRaw(allResults, (r) => r.min_coin_delta, MIN_DELTAS, (v) => v.toFixed(2)), [allResults]);
+  const entrySecData = useMemo(() => groupByParamRaw(allResults, (r) => r.max_entry_seconds, MAX_ENTRY_SECONDS, (v) => `${v}s`), [allResults]);
+  const priceRangeData = useMemo(() => groupByParamRaw(allResults, (r) => r.entry_price_low, ENTRY_PRICE_LOWS, (v) => formatCents(v)), [allResults]);
+  const deviationData = useMemo(() => groupByParamRaw(allResults, (r) => r.min_deviation, MIN_DEVIATIONS, (v) => v.toFixed(2)), [allResults]);
+
+  // Market type impact
+  const marketTypeData = useMemo(() => {
+    const types = MARKET_TYPE_OPTIONS.map((o) => o.value);
+    return types.map((mt) => {
+      const mtResults = results.filter((r) => r.market_type === mt && r.trades_taken >= 20);
+      const avg = mtResults.length > 0 ? mtResults.reduce((a, c) => a + c.total_pnl, 0) / mtResults.length : 0;
+      const label = MARKET_TYPE_OPTIONS.find((o) => o.value === mt)?.label ?? mt;
+      return { param: label, avgPnl: avg, raw: 0 };
+    });
+  }, [results]);
 
   return (
     <section className="mb-8 md:mb-14">
@@ -298,10 +289,10 @@ function ParameterImpactSection({ results }: { results: FarmingResult[] }) {
         description="Average total PnL grouped by each parameter value across all combinations where trades_taken >= 20. Shows which values tend to perform better."
       />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <ParameterImpactChart title="Trigger Point" data={triggerData} />
-        <ParameterImpactChart title="Stop-Loss (Exit Point)" data={exitData} />
-        <ParameterImpactChart title="Trigger Minute" data={minuteData} />
-        <ParameterImpactChart title="Min Coin Delta" data={deltaData} />
+        <ParameterImpactChart title="Max Entry Seconds" data={entrySecData} />
+        <ParameterImpactChart title="Entry Price Range" data={priceRangeData} />
+        <ParameterImpactChart title="Min Deviation" data={deviationData} />
+        <ParameterImpactChart title="Market Type" data={marketTypeData} />
       </div>
     </section>
   );
@@ -311,15 +302,7 @@ function ParameterImpactSection({ results }: { results: FarmingResult[] }) {
 // Section 6 — Win Rate vs PnL Scatter
 // ---------------------------------------------------------------------------
 
-const MARKET_TYPE_OPTIONS = [
-  { value: "all", label: "All" },
-  { value: "btc_15m", label: "BTC 15m" },
-  { value: "eth_15m", label: "ETH 15m" },
-  { value: "sol_15m", label: "SOL 15m" },
-  { value: "xrp_15m", label: "XRP 15m" },
-];
-
-function ScatterSection({ results }: { results: FarmingResult[] }) {
+function ScatterSection({ results }: { results: CalibrationResult[] }) {
   const [marketType, setMarketType] = useState("all");
 
   const filtered = useMemo(() => {
@@ -330,9 +313,9 @@ function ScatterSection({ results }: { results: FarmingResult[] }) {
         win_rate: r.win_rate * 100,
         total_pnl: r.total_pnl,
         trades: r.trades_taken,
-        trigger: formatCents(r.trigger_point),
-        exit: formatCents(r.exit_point),
-        minute: r.trigger_minutes,
+        range: formatRange(r.entry_price_low, r.entry_price_high),
+        maxSec: r.max_entry_seconds,
+        minDev: r.min_deviation,
       }));
   }, [results, marketType]);
 
@@ -382,7 +365,7 @@ function ScatterSection({ results }: { results: FarmingResult[] }) {
                     const d = payload[0].payload;
                     return (
                       <div className="rounded-lg border border-zinc-700/60 bg-zinc-900/95 px-3 py-2 shadow-xl backdrop-blur-sm">
-                        <p className="text-xs text-zinc-400">Trigger: {d.trigger} | Exit: {d.exit} | Min: {d.minute}m</p>
+                        <p className="text-xs text-zinc-400">Range: {d.range} | Max: {d.maxSec}s | Dev: {d.minDev}</p>
                         <p className="text-xs text-zinc-300 mt-1">Win Rate: <span className="font-mono font-semibold">{d.win_rate.toFixed(1)}%</span></p>
                         <p className={cn("text-xs mt-0.5 font-mono font-semibold", d.total_pnl >= 0 ? "text-emerald-400" : "text-red-400")}>
                           PnL: {formatPnl(d.total_pnl)}
@@ -407,46 +390,54 @@ function ScatterSection({ results }: { results: FarmingResult[] }) {
 // Section 7 — PnL Heatmap
 // ---------------------------------------------------------------------------
 
-function HeatmapSection({ results }: { results: FarmingResult[] }) {
+function HeatmapSection({ results }: { results: CalibrationResult[] }) {
   const [marketType, setMarketType] = useState("all");
-  const [triggerMinute, setTriggerMinute] = useState(1);
-  const [minDelta, setMinDelta] = useState(0.00);
+  const [minDeviation, setMinDeviation] = useState(0.05);
 
-  const minuteOptions = TRIGGER_MINUTES.map((m) => ({ value: String(m), label: String(m) }));
-  const deltaOptions = MIN_DELTAS.map((d) => ({ value: d.toFixed(2), label: d.toFixed(2) }));
+  const deviationOptions = MIN_DEVIATIONS.map((d) => ({ value: d.toFixed(2), label: d.toFixed(2) }));
 
   const filtered = useMemo(() => {
     return results.filter((r) => {
       const mtMatch = marketType === "all" ? r.market_type === "all" : r.market_type === marketType;
-      const minMatch = Math.abs(r.trigger_minutes - triggerMinute) < 0.01;
-      const deltaMatch = Math.abs(r.min_coin_delta - minDelta) < 0.001;
-      return mtMatch && minMatch && deltaMatch;
+      const devMatch = Math.abs(r.min_deviation - minDeviation) < 0.001;
+      return mtMatch && devMatch;
     });
-  }, [results, marketType, triggerMinute, minDelta]);
+  }, [results, marketType, minDeviation]);
 
-  // Build heatmap grid
+  // Unique sorted values for axes
+  const entryPriceLows = useMemo(() => {
+    const set = new Set(filtered.map((r) => r.entry_price_low));
+    return [...set].sort((a, b) => a - b);
+  }, [filtered]);
+
+  const maxEntrySeconds = useMemo(() => {
+    const set = new Set(filtered.map((r) => r.max_entry_seconds));
+    return [...set].sort((a, b) => a - b);
+  }, [filtered]);
+
+  // Build heatmap grid: Y = max_entry_seconds, X = entry_price_low
   const grid = useMemo(() => {
-    const cellMap = new Map<string, FarmingResult>();
+    const cellMap = new Map<string, CalibrationResult>();
     for (const r of filtered) {
-      const key = `${r.trigger_point.toFixed(2)}_${r.exit_point.toFixed(2)}`;
+      const key = `${r.entry_price_low.toFixed(2)}_${r.max_entry_seconds}`;
       cellMap.set(key, r);
     }
 
-    return EXIT_POINTS.map((ep) => ({
-      exitPoint: ep,
-      cells: TRIGGER_POINTS.map((tp) => {
-        const key = `${tp.toFixed(2)}_${ep.toFixed(2)}`;
+    return maxEntrySeconds.map((sec) => ({
+      maxSec: sec,
+      cells: entryPriceLows.map((epl) => {
+        const key = `${epl.toFixed(2)}_${sec}`;
         const r = cellMap.get(key);
         return {
-          triggerPoint: tp,
-          exitPoint: ep,
+          entryPriceLow: epl,
+          maxSec: sec,
           result: r || null,
           pnl: r ? r.total_pnl : null,
           trades: r ? r.trades_taken : 0,
         };
       }),
     }));
-  }, [filtered]);
+  }, [filtered, entryPriceLows, maxEntrySeconds]);
 
   // Find min/max PnL for color scale
   const allPnls = grid.flatMap((row) => row.cells.filter((c) => c.pnl !== null && c.trades >= 20).map((c) => c.pnl as number));
@@ -473,20 +464,15 @@ function HeatmapSection({ results }: { results: FarmingResult[] }) {
     <section className="mb-8 md:mb-14">
       <SectionHeader
         title="PnL Heatmap"
-        description="2D view of total PnL for each trigger/stop-loss combination. Green = profitable. Filter by trigger minute to explore different time configurations."
+        description="2D view of total PnL for each entry price range / max entry seconds combination. Green = profitable. Filter by min deviation to explore different thresholds."
       />
       <GlassPanel variant="glow-br">
         <div className="relative border-b border-zinc-800/60 px-6 py-3 flex flex-wrap items-center gap-3">
           <FilterRow options={MARKET_TYPE_OPTIONS} selected={marketType} onSelect={setMarketType} />
           <div className="h-4 w-px bg-zinc-800/60" />
           <div className="flex items-center gap-1.5">
-            <span className="text-xs text-zinc-500">Minute:</span>
-            <FilterRow options={minuteOptions} selected={String(triggerMinute)} onSelect={(v) => setTriggerMinute(Number(v))} />
-          </div>
-          <div className="h-4 w-px bg-zinc-800/60" />
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-zinc-500">Delta:</span>
-            <FilterRow options={deltaOptions} selected={minDelta.toFixed(2)} onSelect={(v) => setMinDelta(parseFloat(v))} />
+            <span className="text-xs text-zinc-500">Min Dev:</span>
+            <FilterRow options={deviationOptions} selected={minDeviation.toFixed(2)} onSelect={(v) => setMinDeviation(parseFloat(v))} />
           </div>
         </div>
 
@@ -498,27 +484,27 @@ function HeatmapSection({ results }: { results: FarmingResult[] }) {
               <table className="mx-auto">
                 <thead>
                   <tr>
-                    <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">Exit \ Trigger</th>
-                    {TRIGGER_POINTS.map((tp) => (
-                      <th key={tp} className="px-2 py-2 text-xs font-semibold text-zinc-400 text-center">
-                        {formatCents(tp)}
+                    <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">Sec \ Entry</th>
+                    {entryPriceLows.map((epl) => (
+                      <th key={epl} className="px-2 py-2 text-xs font-semibold text-zinc-400 text-center">
+                        {formatCents(epl)}
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {grid.map((row) => (
-                    <tr key={row.exitPoint}>
-                      <td className="px-2 py-2 text-xs font-semibold text-zinc-400">{formatCents(row.exitPoint)}</td>
+                    <tr key={row.maxSec}>
+                      <td className="px-2 py-2 text-xs font-semibold text-zinc-400">{row.maxSec}s</td>
                       {row.cells.map((cell) => (
                         <td
-                          key={`${cell.triggerPoint}_${cell.exitPoint}`}
+                          key={`${cell.entryPriceLow}_${cell.maxSec}`}
                           className={cn(
                             "px-2 py-2 text-center border border-zinc-800/30 min-w-[60px]",
                             getCellColor(cell.pnl, cell.trades)
                           )}
                           title={cell.pnl !== null && cell.trades >= 20
-                            ? `Trigger: ${formatCents(cell.triggerPoint)}, Exit: ${formatCents(cell.exitPoint)}, PnL: ${formatPnl(cell.pnl)}, Trades: ${cell.trades}`
+                            ? `Entry: ${formatCents(cell.entryPriceLow)}, Max: ${cell.maxSec}s, PnL: ${formatPnl(cell.pnl)}, Trades: ${cell.trades}`
                             : "Insufficient data"
                           }
                         >
@@ -550,7 +536,7 @@ function HeatmapSection({ results }: { results: FarmingResult[] }) {
 // Main export
 // ---------------------------------------------------------------------------
 
-export function StrategyCharts({ results }: { results: FarmingResult[] }) {
+export function Strategy2Charts({ results }: { results: CalibrationResult[] }) {
   return (
     <>
       <ParameterImpactSection results={results} />

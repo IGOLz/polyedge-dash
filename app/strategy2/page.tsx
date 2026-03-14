@@ -4,21 +4,22 @@ import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { SectionHeader } from "@/components/section-header";
 import { GlassPanel } from "@/components/ui/glass-panel";
-import { getFarmingData, type FarmingResult, type FarmingRun } from "@/lib/farming-queries";
-import { StrategyCharts, TopConfigurationsTable } from "./strategy-charts";
+import { getCalibrationStrategyData, type CalibrationResult, type CalibrationRun } from "@/lib/calibration-queries";
+import { Strategy2Charts, TopConfigurationsTable } from "./strategy2-charts";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-const getCachedFarmingData = unstable_cache(
+const getCachedCalibrationData = unstable_cache(
   async () => {
     try {
-      return await getFarmingData();
-    } catch {
+      return await getCalibrationStrategyData();
+    } catch (error) {
+      console.error("[Strategy2] Failed to fetch calibration data:", error);
       return { run: null, results: [] };
     }
   },
-  ["farming-data"],
+  ["calibration-strategy-data"],
   { revalidate: 14400 }
 );
 
@@ -52,37 +53,41 @@ function formatCents(val: number): string {
 function StrategyExplanation() {
   return (
     <section className="mb-8 md:mb-14">
-      <SectionHeader title="What is Probability Farming?" />
+      <SectionHeader title="What is the Calibration Strategy?" />
       <GlassPanel variant="glow-tl">
         <div className="relative p-6 space-y-6">
           <div>
             <h3 className="mb-2 text-sm font-semibold text-primary/80">The Idea</h3>
             <p className="text-sm leading-relaxed text-zinc-300">
-              This strategy targets 15-minute crypto prediction markets on Polymarket. Instead of entering at the start of a market window, it waits. Once either side (Up or Down) reaches a high probability zone — for example 85¢ — it enters a position on that side and holds until resolution.
+              This strategy exploits a specific market inefficiency found in our calibration analysis. When Polymarket prices a 5-minute crypto contract at around 52¢, the Up side actually wins less than 50% of the time — meaning the market is systematically overpricing Up in the near-50 zone. This strategy enters early in the window and bets against the overpriced side.
             </p>
-            <p className="mt-2 text-sm leading-relaxed text-zinc-300">
-              The logic: a contract priced at 85¢ implies an 85% chance of winning. If the market is correctly calibrated, entering late at high probability should produce consistent small gains.
+          </div>
+
+          <div>
+            <h3 className="mb-2 text-sm font-semibold text-primary/80">How It Differs from Strategy 1</h3>
+            <p className="text-sm leading-relaxed text-zinc-300">
+              Strategy 1 (Probability Farming) enters late in the window when one side reaches high conviction — it bets with momentum. This strategy enters early, in the first 30–180 seconds, when the price is in a historically miscalibrated zone — it bets against the market&apos;s mispricing. No stop-loss is used since the edge is statistical, not momentum-based.
             </p>
           </div>
 
           <div>
             <h3 className="mb-2 text-sm font-semibold text-primary/80">The Parameters</h3>
             <p className="text-sm leading-relaxed text-zinc-300">
-              Three values control the strategy. The <span className="text-zinc-100 font-medium">Trigger Point</span> is the price threshold that activates a trade — for example 0.85 means enter when either Up or Down reaches 85¢. The <span className="text-zinc-100 font-medium">Exit Point</span> is the stop-loss — if the price reverses against the position and drops to this level, the trade is closed early to cap the loss. The <span className="text-zinc-100 font-medium">Trigger Minute</span> is the minimum time that must pass before the bot starts watching for an entry — earlier entries have more time for reversals, later entries have less opportunity to find the exact price.
+              The <span className="text-zinc-100 font-medium">Max Entry Seconds</span> controls how long into the window to look for an entry opportunity. The <span className="text-zinc-100 font-medium">Entry Price Range</span> defines which price zone to watch — only prices within this range trigger a trade. The <span className="text-zinc-100 font-medium">Min Deviation</span> is the minimum historical miscalibration required to justify entering — a bucket must show at least this much deviation from its implied probability to trigger a trade.
             </p>
           </div>
 
           <div>
-            <h3 className="mb-2 text-sm font-semibold text-primary/80">The Risk</h3>
+            <h3 className="mb-2 text-sm font-semibold text-primary/80">The Edge</h3>
             <p className="text-sm leading-relaxed text-zinc-300">
-              The main risk is reversal. A contract can reach 85¢ and then drop all the way to 0¢ if the underlying asset price moves sharply. The stop-loss (Exit Point) partially manages this by cutting losses early, but in fast markets it may not fill at the exact price.
+              The entry direction (Up or Down) is determined by the calibration analysis from the Lab: if a price bucket historically overprices Up (actual win rate is significantly below the price), the strategy bets Down. If it underprices Up, the strategy bets Up. The calibration data is queried fresh at each analysis run.
             </p>
           </div>
 
           <div>
             <h3 className="mb-2 text-sm font-semibold text-primary/80">What This Page Shows</h3>
             <p className="text-sm leading-relaxed text-zinc-300">
-              The backtest below runs all combinations of these three parameters plus a minimum coin delta filter (minimum price movement from the window open before entering) against all historical 15-minute markets collected. The goal is to find which parameter combinations produce positive returns after fees. Fees are calculated at 2% per trade. Results with fewer than 20 trades are excluded from rankings.
+              The backtest tests all parameter combinations against historical 5-minute crypto markets. Since there is no stop-loss, the win rate directly determines profitability. A win rate above 55% at near-50¢ entry prices would indicate a genuine exploitable edge.
             </p>
           </div>
 
@@ -101,7 +106,7 @@ function StrategyExplanation() {
 // Section 2 — Run Metadata
 // ---------------------------------------------------------------------------
 
-function RunMetadata({ run }: { run: FarmingRun }) {
+function RunMetadata({ run }: { run: CalibrationRun }) {
   return (
     <div className="mb-8">
       <div className="relative grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-primary/20 bg-primary/[0.06] sm:grid-cols-4">
@@ -153,12 +158,12 @@ function RunMetadata({ run }: { run: FarmingRun }) {
 // Section 3 — Best Configuration
 // ---------------------------------------------------------------------------
 
-function BestConfiguration({ results }: { results: FarmingResult[] }) {
+function BestConfiguration({ results }: { results: CalibrationResult[] }) {
   const eligible = results.filter((r) => r.trades_taken >= 20 && r.market_type === "all");
   if (eligible.length === 0) {
     return (
       <section className="mb-8 md:mb-14">
-        <SectionHeader title="Best Configuration" description="The single parameter combination with highest total PnL across all 15m markets, minimum 20 trades." />
+        <SectionHeader title="Best Configuration" description="The single parameter combination with highest total PnL across all 5m markets, minimum 20 trades." />
         <p className="text-sm text-zinc-500">Not enough data to determine a best configuration yet.</p>
       </section>
     );
@@ -174,14 +179,14 @@ function BestConfiguration({ results }: { results: FarmingResult[] }) {
     { label: "Win Rate", value: `${winRatePct.toFixed(1)}%`, color: "text-zinc-50", large: true },
     { label: "Total Trades", value: best.trades_taken.toLocaleString("en-US"), color: "text-zinc-50", large: true },
     { label: "Wins", value: best.wins.toLocaleString("en-US"), color: "text-emerald-400", large: false },
-    { label: "Stop Losses", value: best.stop_losses.toLocaleString("en-US"), color: "text-yellow-400", large: false },
+    { label: "Up Trades / Down Trades", value: `${best.up_trades} / ${best.down_trades}`, color: "text-cyan-400", large: false },
     { label: "Avg Entry Price", value: formatCents(best.avg_entry_price), color: "text-zinc-50", large: false },
-    { label: "Avg Coin Delta", value: best.avg_coin_delta.toFixed(3), color: "text-zinc-50", large: false },
+    { label: "Entry Range", value: `${formatCents(best.entry_price_low)}–${formatCents(best.entry_price_high)}`, color: "text-zinc-50", large: false },
   ];
 
   return (
     <section className="mb-8 md:mb-14">
-      <SectionHeader title="Best Configuration" description="The single parameter combination with highest total PnL across all 15m markets, minimum 20 trades." />
+      <SectionHeader title="Best Configuration" description="The single parameter combination with highest total PnL across all 5m markets, minimum 20 trades." />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
         {statCards.map((card) => (
@@ -204,7 +209,7 @@ function BestConfiguration({ results }: { results: FarmingResult[] }) {
   );
 }
 
-// Section 4 is in strategy-charts.tsx (client component for expand/collapse)
+// Section 4 is in strategy2-charts.tsx (client component for expand/collapse)
 
 // ---------------------------------------------------------------------------
 // No-data empty state
@@ -216,7 +221,7 @@ function EmptyState() {
       <Navbar />
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 md:px-6 flex items-center justify-center">
         <div className="text-center">
-          <div className="mb-4 text-4xl text-zinc-600">🌾</div>
+          <div className="mb-4 text-4xl text-zinc-600">📐</div>
           <h2 className="text-lg font-semibold text-zinc-200 mb-2">No backtest data yet</h2>
           <p className="text-sm text-zinc-500 max-w-md">
             The analysis runs automatically every 4 hours. Check back soon.
@@ -232,8 +237,8 @@ function EmptyState() {
 // Main Page
 // ---------------------------------------------------------------------------
 
-export default async function StrategyPage() {
-  const data = await getCachedFarmingData();
+export default async function Strategy2Page() {
+  const data = await getCachedCalibrationData();
 
   if (!data.run) {
     return <EmptyState />;
@@ -259,9 +264,9 @@ export default async function StrategyPage() {
 
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-zinc-100 mb-1">Farming Strategy</h1>
+          <h1 className="text-2xl font-bold text-zinc-100 mb-1">Calibration Strategy</h1>
           <p className="text-sm text-zinc-400 mb-4">
-            Probability farming backtest results across all parameter combinations
+            Calibration strategy backtest results across all parameter combinations
           </p>
         </div>
 
@@ -278,7 +283,7 @@ export default async function StrategyPage() {
         <TopConfigurationsTable results={results} />
 
         {/* Sections 5, 6, 7 — Client components (charts) */}
-        <StrategyCharts results={results} />
+        <Strategy2Charts results={results} />
       </main>
 
       <Footer />
