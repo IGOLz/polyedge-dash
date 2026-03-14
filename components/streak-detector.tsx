@@ -29,7 +29,7 @@ function StreakCard({ streak }: { streak: StreakData }) {
     <GlassPanel variant="glow-br" className="p-6">
       <div className="relative">
         <div className="mb-4 flex items-center justify-between">
-          <span className="text-2xl font-bold tracking-tight text-zinc-100">
+          <span className="text-base font-semibold tracking-tight text-zinc-100">
             {assetLabel(streak.marketType)}
           </span>
           <Badge variant={streak.streakDirection === "Up" ? "up" : "down"}>
@@ -56,7 +56,7 @@ function StreakCard({ streak }: { streak: StreakData }) {
           )}
         </div>
 
-        <p className="mt-2 text-[10px] text-zinc-400">
+        <p className="mt-2 text-xs text-zinc-400">
           Last {streak.lastTen.length} outcomes (newest first)
         </p>
       </div>

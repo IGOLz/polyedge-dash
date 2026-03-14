@@ -85,14 +85,14 @@ export function EdgeScanner({ data }: { data: EdgeRow[] }) {
         <table className="w-full">
           <thead>
             <tr className="border-b border-zinc-800/40">
-              <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-zinc-500">Market</th>
-              <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-zinc-500">Time</th>
-              <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-zinc-500">Price Bucket</th>
-              <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-zinc-500">Implied</th>
-              <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-zinc-500">Actual</th>
-              <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-zinc-500">Edge</th>
-              <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-zinc-500">Strength</th>
-              <th className="px-4 py-2.5 text-right text-[10px] font-medium uppercase tracking-wider text-zinc-500">Samples</th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Market</th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Time</th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Price Bucket</th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Implied</th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Actual</th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Edge</th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Strength</th>
+              <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500">Samples</th>
             </tr>
           </thead>
           <tbody>
@@ -147,7 +147,7 @@ export function EdgeScanner({ data }: { data: EdgeRow[] }) {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-medium ${strength.color} ${strength.bg}`}>
+                    <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${strength.color} ${strength.bg}`}>
                       {strength.label}
                     </span>
                   </td>

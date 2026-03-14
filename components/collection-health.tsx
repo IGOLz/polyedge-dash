@@ -55,10 +55,10 @@ function HealthCard({ rate }: { rate: TickRate }) {
     <GlassPanel variant="glow-tl" className="p-6">
       <div className="relative">
         <div className="mb-4 flex items-center justify-between">
-          <span className="text-2xl font-bold tracking-tight text-zinc-100">
+          <span className="text-base font-semibold tracking-tight text-zinc-100">
             {assetLabel(rate.marketType)}
           </span>
-          <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary border border-primary/20">
+          <span className="rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary border border-primary/20">
             {intervalLabel(rate.marketType)}
           </span>
         </div>
@@ -81,7 +81,7 @@ function HealthCard({ rate }: { rate: TickRate }) {
               style={{ width: `${Math.min(parseFloat(pct) || 0, 100)}%` }}
             />
           </div>
-          <p className="text-right text-[10px] text-zinc-400">{pct}% of expected</p>
+          <p className="text-right text-xs text-zinc-400">{pct}% of expected</p>
         </div>
       </div>
     </GlassPanel>

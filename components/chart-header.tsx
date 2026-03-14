@@ -23,7 +23,7 @@ export function ChartHeader({
     <div className="flex items-start justify-between">
       <div>
         <div className="flex items-center gap-2.5">
-          <span className="text-xl font-bold text-primary">{title}</span>
+          <span className="text-base font-semibold text-primary">{title}</span>
           <span className="rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-primary/70">
             {interval}
           </span>

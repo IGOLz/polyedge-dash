@@ -263,12 +263,12 @@ function CalibrationSection({ data }: { data: CalibrationRow[] }) {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-zinc-800/40">
-                  <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-zinc-500">Price Bucket</th>
-                  <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-zinc-500">Samples</th>
-                  <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-zinc-500">Expected</th>
-                  <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-zinc-500">Actual</th>
-                  <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-zinc-500">Deviation</th>
-                  <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-zinc-500">Significant</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Price Bucket</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Samples</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Expected</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Actual</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Deviation</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Significant</th>
                 </tr>
               </thead>
               <tbody>
@@ -316,11 +316,11 @@ function CalibrationSection({ data }: { data: CalibrationRow[] }) {
                       </td>
                       <td className="px-4 py-3">
                         {isSig(r.significant) ? (
-                          <span className="inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-medium text-emerald-400 bg-emerald-400/10">
+                          <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium text-emerald-400 bg-emerald-400/10">
                             Significant
                           </span>
                         ) : (
-                          <span className="inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-medium text-zinc-500 bg-zinc-800/40">
+                          <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium text-zinc-500 bg-zinc-800/40">
                             –
                           </span>
                         )}
@@ -447,15 +447,15 @@ function EdgeScannerSection({ data }: { data: CalibrationRow[] }) {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-zinc-800/40">
-                  <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-zinc-500">Market Type</th>
-                  <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-zinc-500">Checkpoint</th>
-                  <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-zinc-500">Price Bucket</th>
-                  <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-zinc-500">Implied Prob</th>
-                  <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-zinc-500">Actual Win Rate</th>
-                  <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-zinc-500">Edge</th>
-                  <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-zinc-500">Strength</th>
-                  <th className="px-4 py-2.5 text-right text-[10px] font-medium uppercase tracking-wider text-zinc-500">Samples</th>
-                  <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-zinc-500">Action</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Market Type</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Checkpoint</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Price Bucket</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Implied Prob</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Actual Win Rate</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Edge</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Strength</th>
+                  <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500">Samples</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -494,7 +494,7 @@ function EdgeScannerSection({ data }: { data: CalibrationRow[] }) {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-medium ${strength.color} ${strength.bg}`}>
+                        <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${strength.color} ${strength.bg}`}>
                           {strength.label}
                         </span>
                       </td>
@@ -502,7 +502,7 @@ function EdgeScannerSection({ data }: { data: CalibrationRow[] }) {
                         <span className="font-mono text-xs text-zinc-400">{r.sample_count.toLocaleString()}</span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center rounded-md px-2.5 py-1 text-[10px] font-bold ${
+                        <span className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium ${
                           isUp ? "text-emerald-400 bg-emerald-400/10" : "text-red-400 bg-red-400/10"
                         }`}>
                           {isUp ? "Bet Up" : "Bet Down"}
@@ -567,7 +567,7 @@ function TrajectorySection({ data }: { data: SequentialRow[] }) {
             <GlassPanel key={market_type} variant="glow-br" className="p-6">
               <div className="relative">
                 <div className="mb-4 flex items-center justify-between">
-                  <span className="text-2xl font-bold tracking-tight text-zinc-100">{label}</span>
+                  <span className="text-base font-semibold tracking-tight text-zinc-100">{label}</span>
                   <Badge variant={badgeVariant}>{badgeText}</Badge>
                 </div>
 
@@ -585,7 +585,7 @@ function TrajectorySection({ data }: { data: SequentialRow[] }) {
                         style={{ width: `${Math.min(winPct!, 100)}%` }}
                       />
                     </div>
-                    <p className="mt-2 text-[10px] text-zinc-400">
+                    <p className="mt-2 text-xs text-zinc-400">
                       {rising.sample_count.toLocaleString()} samples
                     </p>
                   </>
@@ -674,13 +674,13 @@ function TimeofdaySection({ data }: { data: TimeofdayRow[] }) {
               <BarChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: -15 }}>
                 <XAxis
                   dataKey="hour"
-                  tick={{ fill: "#71717a", fontSize: 9 }}
+                  tick={{ fill: "#71717a", fontSize: 12 }}
                   axisLine={{ stroke: "#3f3f46" }}
                   tickLine={false}
                 />
                 <YAxis
                   domain={[0, 100]}
-                  tick={{ fill: "#71717a", fontSize: 10 }}
+                  tick={{ fill: "#71717a", fontSize: 12 }}
                   axisLine={{ stroke: "#3f3f46" }}
                   tickLine={false}
                   tickFormatter={(v) => `${v}%`}
@@ -697,11 +697,11 @@ function TimeofdaySection({ data }: { data: TimeofdayRow[] }) {
                     return (
                       <div className="w-44 rounded-lg border border-zinc-700/60 bg-zinc-900/95 backdrop-blur-sm shadow-2xl overflow-hidden">
                         <div className={`px-3 py-1.5 ${isUp ? "bg-emerald-500/15" : "bg-red-500/15"}`}>
-                          <span className="text-[10px] font-semibold text-zinc-200">{d.hour}:00 UTC</span>
+                          <span className="text-xs font-semibold text-zinc-200">{d.hour}:00 UTC</span>
                         </div>
                         <div className="px-3 py-2.5 space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] text-zinc-500">Win Rate</span>
+                            <span className="text-xs text-zinc-500">Win Rate</span>
                             <span className={`font-mono text-sm font-bold ${isUp ? "text-emerald-400" : "text-red-400"}`}>
                               {(d.winRate ?? 0).toFixed(1)}%
                             </span>
@@ -713,14 +713,14 @@ function TimeofdaySection({ data }: { data: TimeofdayRow[] }) {
                             />
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] text-zinc-500">Edge</span>
+                            <span className="text-xs text-zinc-500">Edge</span>
                             <span className={`font-mono text-xs font-semibold ${isUp ? "text-emerald-400" : "text-red-400"}`}>
                               {edge > 0 ? "+" : ""}{edge.toFixed(1)}%
                             </span>
                           </div>
                           <div className="h-px bg-zinc-800" />
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] text-zinc-500">Samples</span>
+                            <span className="text-xs text-zinc-500">Samples</span>
                             <span className="font-mono text-xs text-zinc-300">{d.sampleCount}</span>
                           </div>
                         </div>
@@ -747,7 +747,7 @@ function TimeofdaySection({ data }: { data: TimeofdayRow[] }) {
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <GlassPanel variant="glow-tl" className="p-6">
             <div className="relative">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-2">
+              <p className="text-xs uppercase tracking-wider text-zinc-500 mb-2">
                 Most Bullish Hour
               </p>
               <p className="text-2xl font-bold tracking-tight text-emerald-400">
@@ -760,7 +760,7 @@ function TimeofdaySection({ data }: { data: TimeofdayRow[] }) {
           </GlassPanel>
           <GlassPanel variant="glow-br" className="p-6">
             <div className="relative">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-2">
+              <p className="text-xs uppercase tracking-wider text-zinc-500 mb-2">
                 Most Bearish Hour
               </p>
               <p className="text-2xl font-bold tracking-tight text-red-400">
@@ -843,11 +843,11 @@ function StreakSection({ data }: { data: SequentialRow[] }) {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-zinc-800/40">
-                  <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-zinc-500">Pattern</th>
-                  <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-zinc-500">Samples</th>
-                  <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-zinc-500">Next Up Rate</th>
-                  <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-zinc-500">Edge</th>
-                  <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-zinc-500">Strength</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Pattern</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Samples</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Next Up Rate</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Edge</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Strength</th>
                 </tr>
               </thead>
               <tbody>
@@ -895,7 +895,7 @@ function StreakSection({ data }: { data: SequentialRow[] }) {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-medium ${strength.color} ${strength.bg}`}>
+                        <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${strength.color} ${strength.bg}`}>
                           {strength.label}
                         </span>
                       </td>
@@ -977,9 +977,9 @@ function CorrelationSection({ data }: { data: SequentialRow[] }) {
           <table className="w-full text-sm">
             <thead>
               <tr>
-                <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-zinc-500" />
+                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500" />
                 {ASSETS.map((a) => (
-                  <th key={a} className="px-4 py-2.5 text-center text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+                  <th key={a} className="px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-zinc-500">
                     {a.toUpperCase()}
                   </th>
                 ))}
@@ -1075,10 +1075,10 @@ function PrevInfluenceSection({ data }: { data: SequentialRow[] }) {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-zinc-800/40">
-                  <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-zinc-500">Previous Outcome</th>
-                  <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-zinc-500">Avg Price at 30s</th>
-                  <th className="px-4 py-2.5 text-right text-[10px] font-medium uppercase tracking-wider text-zinc-500">Samples</th>
-                  <th className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-zinc-500">Interpretation</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Previous Outcome</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Avg Price at 30s</th>
+                  <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500">Samples</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Interpretation</th>
                 </tr>
               </thead>
               <tbody>
@@ -1107,7 +1107,7 @@ function PrevInfluenceSection({ data }: { data: SequentialRow[] }) {
                         <span className="font-mono text-xs text-zinc-400">{r.sample_count.toLocaleString()}</span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-medium ${
+                        <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${
                           isBullish ? "text-emerald-400 bg-emerald-400/10"
                           : isBearish ? "text-red-400 bg-red-400/10"
                           : "text-zinc-400 bg-zinc-800/40"
@@ -1169,7 +1169,7 @@ export function AnalysisClient({ data }: { data: AnalysisData & { run: AnalysisR
               <div className="absolute -top-10 -right-10 h-20 w-20 rounded-full bg-primary/[0.05] blur-2xl" />
               <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.03] to-transparent" />
               <p className="relative text-xs font-semibold uppercase tracking-[0.15em] text-primary/60">Last Run</p>
-              <p className="relative mt-2 font-mono text-xl md:text-2xl font-bold tabular-nums text-zinc-50">
+              <p className="relative mt-2 font-mono text-2xl font-bold tabular-nums text-zinc-50">
                 {formatDateOnly(run.ran_at)}
               </p>
             </div>
@@ -1178,7 +1178,7 @@ export function AnalysisClient({ data }: { data: AnalysisData & { run: AnalysisR
               <div className="absolute -top-10 -right-10 h-20 w-20 rounded-full bg-primary/[0.05] blur-2xl" />
               <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.03] to-transparent" />
               <p className="relative text-xs font-semibold uppercase tracking-[0.15em] text-primary/60">Markets</p>
-              <p className="relative mt-2 font-mono text-2xl md:text-3xl font-bold tabular-nums text-zinc-50">
+              <p className="relative mt-2 font-mono text-2xl font-bold tabular-nums text-zinc-50">
                 {(run.markets_analyzed ?? 0).toLocaleString()}
               </p>
             </div>
@@ -1187,7 +1187,7 @@ export function AnalysisClient({ data }: { data: AnalysisData & { run: AnalysisR
               <div className="absolute -top-10 -right-10 h-20 w-20 rounded-full bg-primary/[0.05] blur-2xl" />
               <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.03] to-transparent" />
               <p className="relative text-xs font-semibold uppercase tracking-[0.15em] text-primary/60">Edges Found</p>
-              <p className="relative mt-2 font-mono text-2xl md:text-3xl font-bold tabular-nums text-zinc-50">
+              <p className="relative mt-2 font-mono text-2xl font-bold tabular-nums text-zinc-50">
                 {calibration.filter((r) => {
                   const sv: unknown = r.significant;
                   return (sv === true || sv === "true" || sv === "t" || sv === 1) && Number(r.sample_count) >= 15;
@@ -1199,7 +1199,7 @@ export function AnalysisClient({ data }: { data: AnalysisData & { run: AnalysisR
               <div className="absolute -top-10 -right-10 h-20 w-20 rounded-full bg-primary/[0.05] blur-2xl" />
               <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.03] to-transparent" />
               <p className="relative text-xs font-semibold uppercase tracking-[0.15em] text-primary/60">Date Range</p>
-              <p className="relative mt-2 font-mono text-xl md:text-2xl font-bold tabular-nums text-zinc-50">
+              <p className="relative mt-2 font-mono text-2xl font-bold tabular-nums text-zinc-50">
                 {run.date_range_start && run.date_range_end
                   ? `${formatDateOnly(run.date_range_start)} → ${formatDateOnly(run.date_range_end)}`
                   : "—"}

@@ -44,7 +44,7 @@ export async function OverviewCards() {
           <p className="relative text-xs font-semibold uppercase tracking-[0.15em] text-primary/60">
             {card.label}
           </p>
-          <p className="relative mt-2 font-mono text-2xl md:text-3xl font-bold tabular-nums text-zinc-50">
+          <p className="relative mt-2 font-mono text-2xl font-bold tabular-nums text-zinc-50">
             {card.value}
           </p>
         </div>

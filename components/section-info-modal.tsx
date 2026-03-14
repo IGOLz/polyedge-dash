@@ -470,7 +470,7 @@ export function SectionInfoButton({ sectionTitle, exportData }: SectionInfoButto
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <button
-          className="flex h-5 w-5 items-center justify-center rounded-full border border-zinc-700/60 bg-zinc-800/60 text-[10px] font-semibold text-zinc-400 transition-colors hover:border-primary/40 hover:text-primary hover:bg-primary/10"
+          className="flex h-5 w-5 items-center justify-center rounded-full border border-zinc-700/60 bg-zinc-800/60 text-xs font-semibold text-zinc-400 transition-colors hover:border-primary/40 hover:text-primary hover:bg-primary/10"
           aria-label={`Learn more about ${sectionTitle}`}
         >
           i
@@ -479,7 +479,7 @@ export function SectionInfoButton({ sectionTitle, exportData }: SectionInfoButto
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto border-primary/20 bg-zinc-950 backdrop-blur-xl">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-zinc-100">
+          <DialogTitle className="text-lg font-semibold text-zinc-100">
             {info.title}
           </DialogTitle>
         </DialogHeader>

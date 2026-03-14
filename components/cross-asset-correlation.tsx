@@ -78,18 +78,18 @@ export function CrossAssetCorrelation({ data }: CrossAssetCorrelationProps) {
                       <div className="mb-4 flex items-center gap-2">
                         <div className="flex items-center gap-1.5">
                           <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: colorA }} />
-                          <span className="text-lg font-bold text-zinc-100">{row.asset_a.toUpperCase()}</span>
+                          <span className="text-base font-semibold text-zinc-100">{row.asset_a.toUpperCase()}</span>
                         </div>
                         <span className="text-zinc-600">×</span>
                         <div className="flex items-center gap-1.5">
                           <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: colorB }} />
-                          <span className="text-lg font-bold text-zinc-100">{row.asset_b.toUpperCase()}</span>
+                          <span className="text-base font-semibold text-zinc-100">{row.asset_b.toUpperCase()}</span>
                         </div>
                       </div>
 
                       {/* Correlation percentage */}
                       <div className="mb-3 flex items-baseline gap-2">
-                        <span className={`font-mono text-3xl font-bold tabular-nums ${getCorrelationColor(corr)}`}>
+                        <span className={`font-mono text-2xl font-bold tabular-nums ${getCorrelationColor(corr)}`}>
                           {corr.toFixed(1)}%
                         </span>
                         <span className="text-xs text-zinc-500">{getCorrelationLabel(corr)}</span>
@@ -98,15 +98,15 @@ export function CrossAssetCorrelation({ data }: CrossAssetCorrelationProps) {
                       {/* Breakdown */}
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] text-zinc-400">Both Up</span>
+                          <span className="text-xs text-zinc-400">Both Up</span>
                           <span className="font-mono text-xs font-medium text-emerald-400">{bothUp} ({(bothUp / total * 100).toFixed(0)}%)</span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] text-zinc-400">Both Down</span>
+                          <span className="text-xs text-zinc-400">Both Down</span>
                           <span className="font-mono text-xs font-medium text-red-400">{bothDown} ({(bothDown / total * 100).toFixed(0)}%)</span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] text-zinc-400">Opposite</span>
+                          <span className="text-xs text-zinc-400">Opposite</span>
                           <span className="font-mono text-xs font-medium text-zinc-400">{total - sameDir} ({((total - sameDir) / total * 100).toFixed(0)}%)</span>
                         </div>
 
@@ -117,7 +117,7 @@ export function CrossAssetCorrelation({ data }: CrossAssetCorrelationProps) {
                           <div className="bg-zinc-600" style={{ width: `${((total - sameDir) / total) * 100}%` }} />
                         </div>
 
-                        <p className="text-[10px] text-zinc-500 text-right">{total} pairs analyzed</p>
+                        <p className="text-xs text-zinc-500 text-right">{total} pairs analyzed</p>
                       </div>
                     </div>
                   </GlassPanel>

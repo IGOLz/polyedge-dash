@@ -133,7 +133,7 @@ function ChartGrid({ data }: { data: CalibrationRow[] }) {
         return (
           <GlassPanel key={type} variant="glow-tl" className="p-6">
             <div className="relative">
-              <h4 className="mb-4 text-2xl font-bold tracking-tight text-zinc-100">
+              <h4 className="mb-4 text-base font-semibold tracking-tight text-zinc-100">
                 {assetLabel(type)}
               </h4>
               {typeData.length === 0 ? (
@@ -145,13 +145,13 @@ function ChartGrid({ data }: { data: CalibrationRow[] }) {
                   <BarChart data={typeData} margin={{ top: 5, right: 5, bottom: 5, left: -15 }}>
                     <XAxis
                       dataKey="bucket"
-                      tick={{ fill: "#71717a", fontSize: 10 }}
+                      tick={{ fill: "#71717a", fontSize: 12 }}
                       axisLine={{ stroke: "#3f3f46" }}
                       tickLine={false}
                     />
                     <YAxis
                       domain={[0, 100]}
-                      tick={{ fill: "#71717a", fontSize: 10 }}
+                      tick={{ fill: "#71717a", fontSize: 12 }}
                       axisLine={{ stroke: "#3f3f46" }}
                       tickLine={false}
                       tickFormatter={(v) => `${v}%`}

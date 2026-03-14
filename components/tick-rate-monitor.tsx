@@ -48,7 +48,7 @@ export function TickRateMonitor() {
               {COLUMNS.map((col) => (
                 <th
                   key={col.label}
-                  className={`px-4 py-3 text-${col.align} text-[10px] font-semibold uppercase tracking-wider text-zinc-500`}
+                  className={`px-4 py-3 text-${col.align} text-xs font-semibold uppercase tracking-wider text-zinc-500`}
                 >
                   {col.label}
                 </th>

@@ -108,11 +108,11 @@ function HeatmapGrid({ data, marketTypes }: { data: HeatmapRow[]; marketTypes: s
           <table className="w-full border-collapse">
             <thead>
               <tr>
-                <th className="p-1.5 text-left text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+                <th className="p-1.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">
                   Time ↓ / Price →
                 </th>
                 {PRICE_BUCKETS.map((bucket) => (
-                  <th key={bucket} className="p-1.5 text-center text-[10px] font-mono font-medium text-zinc-400">
+                  <th key={bucket} className="p-1.5 text-center text-xs font-mono font-medium text-zinc-400">
                     {(bucket * 100).toFixed(0)}¢
                   </th>
                 ))}
@@ -121,7 +121,7 @@ function HeatmapGrid({ data, marketTypes }: { data: HeatmapRow[]; marketTypes: s
             <tbody>
               {timeOffsets.map((offset) => (
                 <tr key={offset}>
-                  <td className="p-1.5 text-[10px] font-mono font-medium text-zinc-400 whitespace-nowrap">
+                  <td className="p-1.5 text-xs font-mono font-medium text-zinc-400 whitespace-nowrap">
                     {formatSeconds(offset)}
                   </td>
                   {PRICE_BUCKETS.map((bucket) => {
@@ -129,7 +129,7 @@ function HeatmapGrid({ data, marketTypes }: { data: HeatmapRow[]; marketTypes: s
                     if (!cell) {
                       return (
                         <td key={bucket} className="p-1">
-                          <div className="flex h-8 items-center justify-center rounded bg-zinc-900/40 text-[9px] text-zinc-600">
+                          <div className="flex h-8 items-center justify-center rounded bg-zinc-900/40 text-xs text-zinc-600">
                             —
                           </div>
                         </td>
@@ -141,7 +141,7 @@ function HeatmapGrid({ data, marketTypes }: { data: HeatmapRow[]; marketTypes: s
                     return (
                       <td key={bucket} className="p-1">
                         <div
-                          className={`flex h-8 items-center justify-center rounded text-[10px] font-mono font-semibold cursor-default ${getHeatColor(winRate)}`}
+                          className={`flex h-8 items-center justify-center rounded text-xs font-mono font-semibold cursor-default ${getHeatColor(winRate)}`}
                           onMouseEnter={(e) => {
                             if (!containerRef.current) return;
                             const rect = e.currentTarget.getBoundingClientRect();
@@ -182,12 +182,12 @@ function HeatmapGrid({ data, marketTypes }: { data: HeatmapRow[]; marketTypes: s
               className={`pointer-events-none absolute z-50 -translate-x-1/2 w-48 rounded-lg border border-zinc-700/60 bg-zinc-900/95 backdrop-blur-sm shadow-2xl overflow-hidden ${tooltip.flipBelow ? "" : "-translate-y-full"}`}
               style={{ left: tooltip.x, top: tooltip.flipBelow ? tooltip.y + 8 : tooltip.y - 8 }}
             >
-              <div className={`px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider ${isUp ? "bg-emerald-500/15 text-emerald-400" : "bg-red-500/15 text-red-400"}`}>
+              <div className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider ${isUp ? "bg-emerald-500/15 text-emerald-400" : "bg-red-500/15 text-red-400"}`}>
                 {edgeLabel} {isUp ? "Up" : "Down"} Edge
               </div>
               <div className="px-3 py-2.5 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-zinc-500">Win Rate</span>
+                  <span className="text-xs text-zinc-500">Win Rate</span>
                   <span className={`font-mono text-sm font-bold ${isUp ? "text-emerald-400" : "text-red-400"}`}>
                     {tooltip.winRate.toFixed(1)}%
                   </span>
@@ -199,24 +199,24 @@ function HeatmapGrid({ data, marketTypes }: { data: HeatmapRow[]; marketTypes: s
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-zinc-500">Edge</span>
+                  <span className="text-xs text-zinc-500">Edge</span>
                   <span className={`font-mono text-xs font-semibold ${isUp ? "text-emerald-400" : "text-red-400"}`}>
                     {isUp ? "+" : ""}{tooltip.edge.toFixed(1)}%
                   </span>
                 </div>
                 <div className="h-px bg-zinc-800" />
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-zinc-500">Price</span>
+                  <span className="text-xs text-zinc-500">Price</span>
                   <span className="font-mono text-xs font-semibold text-zinc-200">
                     {(tooltip.price * 100).toFixed(0)}¢
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-zinc-500">Time</span>
+                  <span className="text-xs text-zinc-500">Time</span>
                   <span className="font-mono text-xs text-zinc-300">{tooltip.time}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-zinc-500">Samples</span>
+                  <span className="text-xs text-zinc-500">Samples</span>
                   <span className="font-mono text-xs text-zinc-300">{tooltip.samples}</span>
                 </div>
               </div>
@@ -226,7 +226,7 @@ function HeatmapGrid({ data, marketTypes }: { data: HeatmapRow[]; marketTypes: s
 
         {/* Legend */}
         <div className="mt-4 flex items-center justify-center gap-2">
-          <span className="text-[10px] text-zinc-500">Down edge</span>
+          <span className="text-xs text-zinc-500">Down edge</span>
           <div className="flex gap-0.5">
             <div className="h-3 w-6 rounded-sm bg-red-500/80" />
             <div className="h-3 w-6 rounded-sm bg-red-500/50" />
@@ -236,7 +236,7 @@ function HeatmapGrid({ data, marketTypes }: { data: HeatmapRow[]; marketTypes: s
             <div className="h-3 w-6 rounded-sm bg-emerald-500/50" />
             <div className="h-3 w-6 rounded-sm bg-emerald-500/80" />
           </div>
-          <span className="text-[10px] text-zinc-500">Up edge</span>
+          <span className="text-xs text-zinc-500">Up edge</span>
         </div>
       </div>
     </GlassPanel>

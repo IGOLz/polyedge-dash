@@ -25,17 +25,17 @@ function MarketCard({ market, index }: { market: MarketData; index: number }) {
       <div className="absolute inset-0 bg-gradient-to-t from-primary/[0.02] to-transparent pointer-events-none" />
 
       <div className="relative flex items-center justify-between">
-        <span className="text-2xl font-bold tracking-tight text-zinc-100">
+        <span className="text-base font-semibold tracking-tight text-zinc-100">
           {ASSET_NAMES[asset] || asset}
         </span>
-        <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary border border-primary/20">
+        <span className="rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary border border-primary/20">
           {interval}
         </span>
       </div>
 
       <div className="relative mt-5 flex items-center gap-6">
         <div>
-          <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+          <p className="text-xs uppercase tracking-wider text-zinc-400">
             Win Rate 24h
           </p>
           <p className={`mt-0.5 font-mono text-sm font-semibold tabular-nums ${
@@ -47,7 +47,7 @@ function MarketCard({ market, index }: { market: MarketData; index: number }) {
           </p>
         </div>
         <div>
-          <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+          <p className="text-xs uppercase tracking-wider text-zinc-400">
             Total Markets
           </p>
           <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums text-zinc-200">

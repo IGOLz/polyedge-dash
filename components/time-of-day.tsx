@@ -93,14 +93,14 @@ export function TimeOfDay({ data }: TimeOfDayProps) {
           <BarChart data={hourlyData} margin={{ top: 5, right: 5, bottom: 5, left: -15 }}>
             <XAxis
               dataKey="hour"
-              tick={{ fill: "#71717a", fontSize: 9 }}
+              tick={{ fill: "#71717a", fontSize: 12 }}
               axisLine={{ stroke: "#3f3f46" }}
               tickLine={false}
               interval={2}
             />
             <YAxis
               domain={[30, 70]}
-              tick={{ fill: "#71717a", fontSize: 10 }}
+              tick={{ fill: "#71717a", fontSize: 12 }}
               axisLine={{ stroke: "#3f3f46" }}
               tickLine={false}
               tickFormatter={(v) => `${v}%`}
@@ -117,11 +117,11 @@ export function TimeOfDay({ data }: TimeOfDayProps) {
                 return (
                   <div className="w-44 rounded-lg border border-zinc-700/60 bg-zinc-900/95 backdrop-blur-sm shadow-2xl overflow-hidden">
                     <div className={`px-3 py-1.5 ${isUp ? "bg-emerald-500/15" : "bg-red-500/15"}`}>
-                      <span className="text-[10px] font-semibold text-zinc-200">{d.hour} UTC</span>
+                      <span className="text-xs font-semibold text-zinc-200">{d.hour} UTC</span>
                     </div>
                     <div className="px-3 py-2.5 space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-zinc-500">Win Rate</span>
+                        <span className="text-xs text-zinc-500">Win Rate</span>
                         <span className={`font-mono text-sm font-bold ${isUp ? "text-emerald-400" : "text-red-400"}`}>
                           {d.winRate.toFixed(1)}%
                         </span>
@@ -133,14 +133,14 @@ export function TimeOfDay({ data }: TimeOfDayProps) {
                         />
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-zinc-500">Edge</span>
+                        <span className="text-xs text-zinc-500">Edge</span>
                         <span className={`font-mono text-xs font-semibold ${isUp ? "text-emerald-400" : "text-red-400"}`}>
                           {edge > 0 ? "+" : ""}{edge.toFixed(1)}%
                         </span>
                       </div>
                       <div className="h-px bg-zinc-800" />
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-zinc-500">Markets</span>
+                        <span className="text-xs text-zinc-500">Markets</span>
                         <span className="font-mono text-xs text-zinc-300">{d.total}</span>
                       </div>
                     </div>
