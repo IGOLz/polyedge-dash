@@ -7,6 +7,7 @@ import { Footer } from "@/components/footer";
 import { OverviewCards, OverviewCardsSkeleton } from "@/components/overview-cards";
 import { MarketsGrid, MarketsGridSkeleton } from "@/components/markets-grid";
 import { AnalyticsSections, AnalyticsSkeleton } from "@/components/analytics-sections";
+import { StrategiesOverview, StrategiesOverviewSkeleton } from "@/components/strategies-overview";
 import { SectionHeader } from "@/components/section-header";
 import { REVALIDATE_SECONDS } from "@/lib/constants";
 
@@ -26,7 +27,11 @@ export default function Dashboard() {
           </Suspense>
         </section>
 
-        <section>
+        <Suspense fallback={<StrategiesOverviewSkeleton />}>
+          <StrategiesOverview />
+        </Suspense>
+
+        <section className="mt-8 md:mt-14">
           <SectionHeader title="Markets" />
           <Suspense fallback={<MarketsGridSkeleton />}>
             <MarketsGrid />

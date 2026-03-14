@@ -546,6 +546,36 @@ const SECTION_INFO: Record<string, SectionInfo> = {
       },
     ],
   },
+  "Strategy Performance": {
+    title: "Strategy Performance",
+    sections: [
+      {
+        heading: "What is this?",
+        content:
+          "Best backtest result per strategy across all 15m markets. Updated every 4 hours. Minimum 20 trades required.",
+      },
+      {
+        heading: "How to read it",
+        content: "Each card represents one strategy's best-performing configuration:",
+        bullets: [
+          "Total PnL — Net profit/loss from the best parameter combination",
+          "ROI — Return on investment as a percentage",
+          "Win Rate — Percentage of trades that were profitable",
+          "Trades — Total number of trades taken by this configuration",
+        ],
+      },
+      {
+        heading: "Strategies",
+        content: "Four strategies are backtested:",
+        bullets: [
+          "S1 Farming — Trigger/exit point based entries",
+          "S2 Calibration — Entry price range based entries",
+          "S3 Momentum — Minimum momentum threshold entries",
+          "S4 Streak Reversal — Streak length based reversal entries",
+        ],
+      },
+    ],
+  },
   Markets: {
     title: "Markets Overview",
     sections: [
