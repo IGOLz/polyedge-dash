@@ -157,12 +157,14 @@ export async function getTickRates() {
   const rates = await query<{
     market_type: string;
     last_5m: string;
+    last_15m: string;
     last_1h: string;
     last_24h: string;
   }>(`
     SELECT
       market_type,
       COUNT(*) FILTER (WHERE time > NOW() - INTERVAL '5 minutes') as last_5m,
+      COUNT(*) FILTER (WHERE time > NOW() - INTERVAL '15 minutes') as last_15m,
       COUNT(*) FILTER (WHERE time > NOW() - INTERVAL '1 hour') as last_1h,
       COUNT(*) as last_24h
     FROM market_ticks
@@ -175,8 +177,85 @@ export async function getTickRates() {
   return rates.map((r) => ({
     marketType: r.market_type,
     last5m: parseInt(r.last_5m),
+    last15m: parseInt(r.last_15m),
     last1h: parseInt(r.last_1h),
     last24h: parseInt(r.last_24h),
     collecting: parseInt(r.last_5m) > 0,
   }));
 }
+
+export async function getCalibrationData(secondsIntoWindow: number = 60) {
+  const lowBound = secondsIntoWindow - 5;
+  const highBound = secondsIntoWindow + 5;
+
+  return query<{
+    market_type: string;
+    price_bucket: string;
+    sample_count: string;
+    up_win_rate: string;
+  }>(`
+    WITH tick_at_target AS (
+      SELECT DISTINCT ON (mt.market_id)
+        mt.market_id,
+        mt.up_price,
+        mo.final_outcome,
+        mo.market_type
+      FROM market_ticks mt
+      JOIN market_outcomes mo ON mt.market_id = mo.market_id
+      WHERE mo.resolved = TRUE
+        AND mo.final_outcome IN ('Up', 'Down')
+        AND EXTRACT(EPOCH FROM (mt.time - mo.started_at)) BETWEEN ${lowBound} AND ${highBound}
+      ORDER BY mt.market_id, ABS(EXTRACT(EPOCH FROM (mt.time - mo.started_at)) - ${secondsIntoWindow})
+    )
+    SELECT
+      market_type,
+      ROUND(up_price * 20) / 20 AS price_bucket,
+      COUNT(*) AS sample_count,
+      ROUND(AVG((final_outcome = 'Up')::int::numeric) * 100, 1) AS up_win_rate
+    FROM tick_at_target
+    GROUP BY market_type, price_bucket
+    ORDER BY market_type, price_bucket
+  `);
+}
+
+export async function getStreakData() {
+  const rows = await query<{
+    market_type: string;
+    final_outcome: string;
+    ended_at: string;
+  }>(`
+    SELECT market_type, final_outcome, ended_at
+    FROM market_outcomes
+    WHERE resolved = TRUE AND final_outcome IN ('Up', 'Down')
+    ORDER BY market_type, ended_at DESC
+  `);
+
+  const grouped = new Map<string, { final_outcome: string; ended_at: string }[]>();
+  for (const row of rows) {
+    const list = grouped.get(row.market_type) || [];
+    list.push(row);
+    grouped.set(row.market_type, list);
+  }
+
+  return MARKET_TYPES.map((type) => {
+    const markets = (grouped.get(type) || []).slice(0, 20);
+    let streakLength = 0;
+    let streakDirection = markets[0]?.final_outcome || "Up";
+
+    for (const m of markets) {
+      if (m.final_outcome === streakDirection) {
+        streakLength++;
+      } else {
+        break;
+      }
+    }
+
+    return {
+      marketType: type,
+      streakLength,
+      streakDirection,
+      lastTen: markets.slice(0, 10).map((m) => m.final_outcome),
+    };
+  });
+}
+

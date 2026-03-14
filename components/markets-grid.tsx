@@ -2,80 +2,98 @@ import Link from "next/link";
 import { getMarketsByType } from "@/lib/queries";
 import { parseMarketType } from "@/lib/formatters";
 
+const ASSET_NAMES: Record<string, string> = {
+  BTC: "Bitcoin",
+  ETH: "Ethereum",
+  SOL: "Solana",
+  XRP: "XRP",
+};
+
+type MarketData = Awaited<ReturnType<typeof getMarketsByType>>[number];
+
+function MarketCard({ market, index }: { market: MarketData; index: number }) {
+  const { asset, interval } = parseMarketType(market.marketType);
+  const total = market.resolved + market.active + market.unknownOutcome;
+
+  return (
+    <Link
+      href={`/markets?type=${market.marketType}`}
+      className="group relative overflow-hidden rounded-xl border border-primary/20 bg-zinc-900/80 p-6 backdrop-blur-sm transition-all duration-300 hover:border-primary/40 hover:bg-zinc-900 animate-slide-up cursor-pointer"
+      style={{ animationDelay: `${index * 60}ms` }}
+    >
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+      <div className="absolute -top-12 -right-12 h-24 w-24 rounded-full bg-primary/[0.06] blur-2xl" />
+
+      <div className="relative">
+        <span className="text-2xl font-bold tracking-tight text-zinc-100">
+          {ASSET_NAMES[asset] || asset}
+        </span>
+      </div>
+
+      <div className="relative mt-5 grid grid-cols-2 gap-x-4 gap-y-3">
+        <div>
+          <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+            Resolved
+          </p>
+          <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums text-zinc-200">
+            {market.resolved.toLocaleString()}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+            Total
+          </p>
+          <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums text-zinc-200">
+            {total.toLocaleString()}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+            Ticks 24h
+          </p>
+          <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums text-zinc-200">
+            {market.ticks24h.toLocaleString()}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+            Outcomes
+          </p>
+          <p className="mt-0.5 flex items-center gap-1.5">
+            <span className="font-mono text-sm tabular-nums text-emerald-400">{market.upWins.toLocaleString()}</span>
+            <span className="text-[10px] text-zinc-600">/</span>
+            <span className="font-mono text-sm tabular-nums text-red-400">{market.downWins.toLocaleString()}</span>
+          </p>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
 export async function MarketsGrid() {
   const markets = await getMarketsByType();
 
+  const markets5m = markets.filter((m) => m.marketType.endsWith("_5m"));
+  const markets15m = markets.filter((m) => m.marketType.endsWith("_15m"));
+
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {markets.map((market, i) => {
-        const { asset, interval } = parseMarketType(market.marketType);
-        const { upWinRate24h: winRate24h, upWinRate: winRateAll } = market;
-        const barWidth = Math.max(5, Math.min(95, winRate24h));
-
-        return (
-          <Link
-            key={market.marketType}
-            href={`/markets?type=${market.marketType}`}
-            className="group relative overflow-hidden rounded-xl border border-primary/20 bg-zinc-900/80 p-6 backdrop-blur-sm transition-all duration-300 hover:border-primary/40 hover:bg-zinc-900 animate-slide-up cursor-pointer"
-            style={{ animationDelay: `${i * 60}ms` }}
-          >
-            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-            <div className="absolute -top-12 -right-12 h-24 w-24 rounded-full bg-primary/[0.06] blur-2xl" />
-
-            <div className="absolute top-4 right-4 rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-primary">
-              {interval}
-            </div>
-
-            <div className="relative">
-              <span className="text-2xl font-bold tracking-tight text-primary">
-                {asset}
-              </span>
-            </div>
-
-            <p className="relative mt-4 text-xs font-medium uppercase tracking-[0.15em] text-zinc-500">
-              Resolved up · last 24h
-            </p>
-
-            <div className="relative mt-1 flex items-baseline gap-2">
-              {market.resolved24h > 0 ? (
-                <>
-                  <span className={`font-mono text-3xl font-bold tabular-nums ${winRate24h >= 50 ? "text-emerald-400" : "text-red-400"}`}>
-                    {winRate24h.toFixed(1)}%
-                  </span>
-                  <span className="text-sm text-zinc-500">
-                    of {market.resolved24h.toLocaleString()}
-                  </span>
-                </>
-              ) : (
-                <span className="font-mono text-3xl font-bold tabular-nums text-zinc-500">—</span>
-              )}
-            </div>
-
-            <div className="relative mt-4 h-1.5 w-full overflow-hidden rounded-full bg-zinc-800/80">
-              {market.resolved24h > 0 && (
-                <div
-                  className={`h-full rounded-full transition-all duration-700 ${winRate24h >= 50 ? "bg-emerald-500/70" : "bg-red-500/70"}`}
-                  style={{ width: `${barWidth}%` }}
-                />
-              )}
-            </div>
-
-            <div className="relative mt-3 flex items-center justify-between">
-              <div className="flex items-center gap-3 font-mono text-xs tabular-nums">
-                <span className="text-zinc-500" title="All-time win rate">
-                  All: {winRateAll.toFixed(0)}% of {market.resolved.toLocaleString()}
-                </span>
-              </div>
-              {market.active > 0 && (
-                <span className="flex items-center gap-1.5 text-xs font-medium text-primary/70">
-                  <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                  Live
-                </span>
-              )}
-            </div>
-          </Link>
-        );
-      })}
+    <div className="space-y-8">
+      <div>
+        <p className="mb-4 text-sm font-semibold text-zinc-300">5m Markets</p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {markets5m.map((market, i) => (
+            <MarketCard key={market.marketType} market={market} index={i} />
+          ))}
+        </div>
+      </div>
+      <div>
+        <p className="mb-4 text-sm font-semibold text-zinc-300">15m Markets</p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {markets15m.map((market, i) => (
+            <MarketCard key={market.marketType} market={market} index={i + markets5m.length} />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { Navbar } from "@/components/navbar";
 import { OverviewCards, OverviewCardsSkeleton } from "@/components/overview-cards";
 import { MarketsGrid, MarketsGridSkeleton } from "@/components/markets-grid";
+import { AnalyticsSections, AnalyticsSkeleton } from "@/components/analytics-sections";
 import { SectionHeader } from "@/components/section-header";
 import { REVALIDATE_SECONDS } from "@/lib/constants";
 
@@ -43,6 +44,11 @@ export default function Dashboard() {
             <MarketsGrid />
           </Suspense>
         </section>
+
+        {/* Analytics */}
+        <Suspense fallback={<AnalyticsSkeleton />}>
+          <AnalyticsSections />
+        </Suspense>
       </main>
 
       <footer className="border-t border-zinc-800/30 py-6">

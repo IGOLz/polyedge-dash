@@ -22,6 +22,7 @@ export interface MarketTicks {
 export interface TickRate {
   marketType: string;
   last5m: number;
+  last15m: number;
   last1h: number;
   last24h: number;
   collecting: boolean;
