@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { Suspense } from "react";
 import { Navbar } from "@/components/navbar";
 import { OverviewCards, OverviewCardsSkeleton } from "@/components/overview-cards";

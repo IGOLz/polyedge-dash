@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from "next/server";
 import { getTickRates } from "@/lib/queries";
 import { REVALIDATE_SECONDS } from "@/lib/constants";
