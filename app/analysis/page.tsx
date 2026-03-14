@@ -1,16 +1,24 @@
+import { unstable_cache } from "next/cache";
 import { Navbar } from "@/components/navbar";
 import { getAnalysisData } from "@/lib/queries";
 import { AnalysisClient } from "./analysis-client";
 
-export const revalidate = 14400; // 4 hours
+export const dynamic = "force-dynamic";
+
+const getCachedAnalysisData = unstable_cache(
+  async () => {
+    try {
+      return await getAnalysisData();
+    } catch {
+      return { run: null };
+    }
+  },
+  ["analysis-data"],
+  { revalidate: 14400 }
+);
 
 export default async function AnalysisPage() {
-  let data;
-  try {
-    data = await getAnalysisData();
-  } catch {
-    data = { run: null, calibration: [], trajectory: [], timeofday: [], sequential: [], heatmap: [] };
-  }
+  const data = await getCachedAnalysisData();
 
   if (!data.run) {
     return (
