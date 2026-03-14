@@ -3,12 +3,38 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import type { Market, TimeGroup } from "@/types/market";
 
+function getUTCDateString(d: Date): string {
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+}
+
+function getTargetDateString(daysAgo: number): string {
+  const now = new Date();
+  const target = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - daysAgo)
+  );
+  return getUTCDateString(target);
+}
+
+const SHORT_MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+export interface DateOption {
+  key: string;
+  label: string;
+  dateString: string;
+  count: number;
+}
+
 export function useMarkets(initialAsset: string, initialInterval: string) {
   const [markets, setMarkets] = useState<Market[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [assetFilter, setAssetFilter] = useState(initialAsset);
   const [intervalFilter, setIntervalFilter] = useState(initialInterval);
   const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState("today");
+  const [customDate, setCustomDate] = useState("");
 
   useEffect(() => {
     fetch("/api/markets")
@@ -17,10 +43,12 @@ export function useMarkets(initialAsset: string, initialInterval: string) {
       .finally(() => setLoading(false));
   }, []);
 
-  const filteredMarkets = useMemo(
+  const isAllAssets = assetFilter === "all";
+
+  // Filter by asset + interval only (no date filter)
+  const filteredByAssetInterval = useMemo(
     () =>
       markets.filter((m) => {
-        if (!m.resolved) return false;
         const [mAsset, mInterval] = m.market_type?.split("_") || [];
         if (assetFilter !== "all" && mAsset !== assetFilter) return false;
         if (mInterval !== intervalFilter) return false;
@@ -29,8 +57,62 @@ export function useMarkets(initialAsset: string, initialInterval: string) {
     [markets, assetFilter, intervalFilter]
   );
 
-  const isAllAssets = assetFilter === "all";
+  // Build date options with counts
+  const dateOptions = useMemo<DateOption[]>(() => {
+    const countMap = new Map<string, number>();
+    for (const m of filteredByAssetInterval) {
+      const ds = getUTCDateString(new Date(m.started_at));
+      countMap.set(ds, (countMap.get(ds) || 0) + 1);
+    }
 
+    const options: DateOption[] = [];
+    for (let i = 0; i < 7; i++) {
+      const ds = getTargetDateString(i);
+      let label: string;
+      if (i === 0) label = "Today";
+      else if (i === 1) label = "Yesterday";
+      else {
+        const d = new Date(ds + "T00:00:00Z");
+        label = `${SHORT_MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`;
+      }
+      options.push({
+        key: i === 0 ? "today" : i === 1 ? "yesterday" : String(i),
+        label,
+        dateString: ds,
+        count: countMap.get(ds) || 0,
+      });
+    }
+
+    return options;
+  }, [filteredByAssetInterval]);
+
+  // Resolve the actual date string for the current selection
+  const activeDateString = useMemo(() => {
+    if (selectedDate === "custom") return customDate;
+    const opt = dateOptions.find((o) => o.key === selectedDate);
+    return opt?.dateString || getTargetDateString(0);
+  }, [selectedDate, customDate, dateOptions]);
+
+  // Count for custom date
+  const customDateCount = useMemo(() => {
+    if (selectedDate !== "custom" || !customDate) return 0;
+    return filteredByAssetInterval.filter(
+      (m) => getUTCDateString(new Date(m.started_at)) === customDate
+    ).length;
+  }, [filteredByAssetInterval, selectedDate, customDate]);
+
+  // Markets for the selected date, reverse chronological
+  const filteredMarkets = useMemo(() => {
+    if (!activeDateString) return [];
+    return filteredByAssetInterval
+      .filter((m) => getUTCDateString(new Date(m.started_at)) === activeDateString)
+      .sort(
+        (a, b) =>
+          new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
+      );
+  }, [filteredByAssetInterval, activeDateString]);
+
+  // Time groups (for isAllAssets mode)
   const timeGroups = useMemo<TimeGroup[]>(() => {
     if (!isAllAssets) return [];
     const groups = new Map<string, Market[]>();
@@ -39,15 +121,20 @@ export function useMarkets(initialAsset: string, initialInterval: string) {
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(m);
     }
-    return Array.from(groups.entries()).map(([key, mkts]) => ({
-      key,
-      markets: mkts,
-      started_at: mkts[0].started_at,
-      ended_at: mkts[0].ended_at,
-    }));
+    return Array.from(groups.entries())
+      .map(([key, mkts]) => ({
+        key,
+        markets: mkts,
+        started_at: mkts[0].started_at,
+        ended_at: mkts[0].ended_at,
+      }))
+      .sort(
+        (a, b) =>
+          new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
+      );
   }, [isAllAssets, filteredMarkets]);
 
-  // Auto-select first item when filter changes
+  // Auto-select first item when filter/date changes
   useEffect(() => {
     const items = isAllAssets ? timeGroups : filteredMarkets;
     const getId = isAllAssets
@@ -65,7 +152,7 @@ export function useMarkets(initialAsset: string, initialInterval: string) {
   }, [filteredMarkets, timeGroups, selectedId, isAllAssets]);
 
   const selectedMarket = !isAllAssets
-    ? markets.find((m) => m.market_id === selectedId) || null
+    ? filteredMarkets.find((m) => m.market_id === selectedId) || null
     : null;
 
   const selectedGroup = isAllAssets
@@ -82,6 +169,16 @@ export function useMarkets(initialAsset: string, initialInterval: string) {
     setSelectedId(null);
   }, []);
 
+  const handleDateSelect = useCallback((key: string) => {
+    setSelectedDate(key);
+    setSelectedId(null);
+  }, []);
+
+  const handleCustomDate = useCallback((date: string) => {
+    setCustomDate(date);
+    setSelectedId(null);
+  }, []);
+
   return {
     loading,
     filteredMarkets,
@@ -95,5 +192,12 @@ export function useMarkets(initialAsset: string, initialInterval: string) {
     intervalFilter,
     handleAssetFilter,
     handleIntervalFilter,
+    dateOptions,
+    selectedDate,
+    handleDateSelect,
+    customDate,
+    handleCustomDate,
+    customDateCount,
+    activeDateString,
   };
 }
