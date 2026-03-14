@@ -39,7 +39,7 @@ Real-time analytics dashboard for [Polymarket](https://polymarket.com/) predicti
 ```bash
 git clone https://github.com/your-username/polyedge-dash.git
 cd polyedge-dash
-npm install
+pnpm install
 ```
 
 ### Environment Variables
@@ -57,7 +57,7 @@ DATABASE_URL=postgresql://user:password@localhost:5432/polymarket_tracker
 ### Development
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
@@ -65,8 +65,15 @@ Open [http://localhost:3000](http://localhost:3000).
 ### Production Build
 
 ```bash
-npm run build
-npm start
+pnpm build
+pnpm start
+```
+
+### Docker
+
+```bash
+docker build -t polyedge-dash .
+docker run -p 3000:3000 -e DATABASE_URL=postgresql://user:password@host:5432/polymarket_tracker polyedge-dash
 ```
 
 ## Database Schema
