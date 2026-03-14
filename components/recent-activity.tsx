@@ -48,7 +48,7 @@ export async function RecentActivity() {
                 {parseFloat(row.final_up_price).toFixed(4)}
               </TableCell>
               <TableCell className="text-right font-mono text-sm tabular-nums text-zinc-400">
-                {parseInt(row.tick_count).toLocaleString()}
+                {parseInt(row.tick_count).toLocaleString("en-US")}
               </TableCell>
             </TableRow>
           ))}

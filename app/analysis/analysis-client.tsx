@@ -297,7 +297,7 @@ function CalibrationSection({ data }: { data: CalibrationRow[] }) {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="font-mono text-xs text-zinc-400">{r.sample_count.toLocaleString()}</span>
+                        <span className="font-mono text-xs text-zinc-400">{r.sample_count.toLocaleString("en-US")}</span>
                       </td>
                       <td className="px-4 py-3">
                         <span className="font-mono text-xs text-zinc-400">{expected.toFixed(0)}%</span>
@@ -505,7 +505,7 @@ function EdgeScannerSection({ data }: { data: CalibrationRow[] }) {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <span className="font-mono text-xs text-zinc-400">{r.sample_count.toLocaleString()}</span>
+                        <span className="font-mono text-xs text-zinc-400">{r.sample_count.toLocaleString("en-US")}</span>
                       </td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium ${
@@ -592,7 +592,7 @@ function TrajectorySection({ data }: { data: SequentialRow[] }) {
                       />
                     </div>
                     <p className="mt-2 text-xs text-zinc-400">
-                      {rising.sample_count.toLocaleString()} samples
+                      {rising.sample_count.toLocaleString("en-US")} samples
                     </p>
                   </>
                 ) : (
@@ -601,7 +601,7 @@ function TrajectorySection({ data }: { data: SequentialRow[] }) {
                 {reversal && reversal.sample_count > 0 && (
                   <p className="mt-3 text-sm text-zinc-300">
                     <span className="text-yellow-400">↩</span>{" "}
-                    {reversal.sample_count.toLocaleString()} reversals,{" "}
+                    {reversal.sample_count.toLocaleString("en-US")} reversals,{" "}
                     <span className="font-mono text-xs font-semibold text-zinc-200">
                       {(parseFloat(String(reversal.up_win_rate ?? reversal.value ?? "0")) * 100).toFixed(1)}%
                     </span>{" "}
@@ -880,7 +880,7 @@ function StreakSection({ data }: { data: SequentialRow[] }) {
                         <span className="font-mono text-base tracking-wider">{arrows}</span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="font-mono text-xs text-zinc-400">{r.sample_count.toLocaleString()}</span>
+                        <span className="font-mono text-xs text-zinc-400">{r.sample_count.toLocaleString("en-US")}</span>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
@@ -1110,7 +1110,7 @@ function PrevInfluenceSection({ data }: { data: SequentialRow[] }) {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <span className="font-mono text-xs text-zinc-400">{r.sample_count.toLocaleString()}</span>
+                        <span className="font-mono text-xs text-zinc-400">{r.sample_count.toLocaleString("en-US")}</span>
                       </td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${
@@ -1185,7 +1185,7 @@ export function AnalysisClient({ data }: { data: AnalysisData & { run: AnalysisR
               <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.03] to-transparent" />
               <p className="relative text-xs font-semibold uppercase tracking-[0.15em] text-primary/60">Markets</p>
               <p className="relative mt-2 font-mono text-2xl font-bold tabular-nums text-zinc-50">
-                {(run.markets_analyzed ?? 0).toLocaleString()}
+                {(run.markets_analyzed ?? 0).toLocaleString("en-US")}
               </p>
             </div>
 

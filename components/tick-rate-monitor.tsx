@@ -65,13 +65,13 @@ export function TickRateMonitor() {
                   <Badge>{rate.marketType}</Badge>
                 </td>
                 <td className="px-4 py-2.5 text-right font-mono text-xs tabular-nums text-zinc-400 group-hover:text-zinc-200 transition-colors">
-                  {rate.last5m.toLocaleString()}
+                  {rate.last5m.toLocaleString("en-US")}
                 </td>
                 <td className="px-4 py-2.5 text-right font-mono text-xs tabular-nums text-zinc-400 group-hover:text-zinc-200 transition-colors">
-                  {rate.last1h.toLocaleString()}
+                  {rate.last1h.toLocaleString("en-US")}
                 </td>
                 <td className="px-4 py-2.5 text-right font-mono text-xs tabular-nums text-zinc-400 group-hover:text-zinc-200 transition-colors">
-                  {rate.last24h.toLocaleString()}
+                  {rate.last24h.toLocaleString("en-US")}
                 </td>
                 <td className="px-4 py-2.5 text-right">
                   <Badge variant={rate.collecting ? "up" : "down"}>

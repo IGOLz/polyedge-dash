@@ -26,7 +26,7 @@ export function shortenId(id: string): string {
 
 export function formatCompactNumber(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  return n.toLocaleString();
+  return n.toLocaleString("en-US");
 }
 
 export function parseMarketType(type: string) {

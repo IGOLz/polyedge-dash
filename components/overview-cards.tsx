@@ -7,7 +7,7 @@ export async function OverviewCards() {
   const cards = [
     {
       label: "Markets",
-      value: stats.totalMarkets.toLocaleString(),
+      value: stats.totalMarkets.toLocaleString("en-US"),
     },
     {
       label: "Ticks",

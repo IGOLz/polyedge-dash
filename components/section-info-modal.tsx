@@ -417,6 +417,135 @@ const SECTION_INFO: Record<string, SectionInfo> = {
       },
     ],
   },
+  "Best Configuration": {
+    title: "Best Configuration",
+    sections: [
+      {
+        heading: "What is this?",
+        content:
+          "The single parameter combination with highest total PnL across all 15-minute markets, requiring a minimum of 20 trades to qualify.",
+      },
+      {
+        heading: "How to read it",
+        content: "The stat cards show the performance of this specific configuration:",
+        bullets: [
+          "Total PnL \u2014 Net profit/loss after all trades and 2% fees",
+          "ROI \u2014 Return on investment as a percentage",
+          "Win Rate \u2014 Percentage of trades that were profitable",
+          "Wins / Stop Losses / Losses \u2014 Breakdown of trade outcomes",
+          "Avg Entry Price \u2014 Average contract price at entry",
+          "Avg Coin Delta \u2014 Average price movement from window open at entry",
+        ],
+      },
+      {
+        heading: "Configuration badges",
+        content:
+          "The badges below the cards show the exact parameter values: Trigger Point, Stop-Loss, Min Minute, and Min Delta. These are the settings that produced the best overall result.",
+      },
+    ],
+  },
+  "Top Configurations by PnL": {
+    title: "Top Configurations by PnL",
+    sections: [
+      {
+        heading: "What is this?",
+        content:
+          "All parameter combinations sorted by total PnL. Only combinations with at least 20 trades are shown. Green values indicate profit, red indicates loss.",
+      },
+      {
+        heading: "How to read it",
+        content: "Each row represents a unique parameter combination:",
+        bullets: [
+          "Market \u2014 Which market type (All, BTC 15m, etc.)",
+          "Trigger / Stop-Loss \u2014 The entry and exit price thresholds",
+          "Win Rate \u2014 Color-coded: green >70%, yellow 60-70%, red <60%",
+          "W / SL / L \u2014 Wins, stop-loss exits, and full losses",
+          "Total PnL \u2014 Net profit/loss after fees",
+          "ROI \u2014 Return on investment percentage",
+        ],
+      },
+      {
+        heading: "Highlighted row",
+        content:
+          "The top row (highest PnL) is highlighted with a left border accent. Use the filters to narrow down by market type or minimum trade count.",
+      },
+    ],
+  },
+  "Parameter Impact": {
+    title: "Parameter Impact",
+    sections: [
+      {
+        heading: "What is this?",
+        content:
+          "Average total PnL grouped by each parameter value across all combinations where trades_taken >= 20. Shows which values tend to perform better.",
+      },
+      {
+        heading: "How to read it",
+        content: "Four charts, one per parameter:",
+        bullets: [
+          "Trigger Point \u2014 Which entry thresholds are most profitable on average",
+          "Stop-Loss (Exit Point) \u2014 Which stop-loss levels work best",
+          "Trigger Minute \u2014 How entry timing affects returns",
+          "Min Coin Delta \u2014 Whether requiring minimum price movement helps",
+        ],
+      },
+      {
+        heading: "Bar colors",
+        content:
+          "Green bars indicate the average PnL is positive for that parameter value. Red bars indicate negative. The dashed line at $0 is the break-even reference.",
+      },
+    ],
+  },
+  "Win Rate vs Profitability": {
+    title: "Win Rate vs Profitability",
+    sections: [
+      {
+        heading: "What is this?",
+        content:
+          "Each dot is one parameter combination. High win rate does not always mean positive PnL \u2014 fees matter. The best combinations are top-right (high win rate AND positive PnL).",
+      },
+      {
+        heading: "How to read it",
+        content: "The scatter chart plots win rate (x-axis) against total PnL (y-axis):",
+        bullets: [
+          "Green dots \u2014 Profitable combinations (positive PnL)",
+          "Red dots \u2014 Losing combinations (negative PnL)",
+          "Dot size \u2014 Proportional to number of trades taken",
+          "Dashed lines \u2014 50% win rate (vertical) and $0 PnL (horizontal)",
+        ],
+      },
+      {
+        heading: "Key insight",
+        content:
+          "A strategy can have a high win rate but still lose money if the average loss is larger than the average win. Look for dots in the top-right quadrant \u2014 both high win rate and positive PnL.",
+      },
+    ],
+  },
+  "PnL Heatmap": {
+    title: "PnL Heatmap",
+    sections: [
+      {
+        heading: "What is this?",
+        content:
+          "A 2D view of total PnL for each trigger/stop-loss combination. Green cells are profitable, red cells are losing. Use the filters to explore different time and delta configurations.",
+      },
+      {
+        heading: "How to read it",
+        content: "The grid shows trigger points (columns) vs exit points (rows):",
+        bullets: [
+          "Dark green \u2014 Highest PnL in the current view",
+          "Dark red \u2014 Lowest PnL (biggest losses)",
+          "Grey with dash \u2014 Fewer than 20 trades, insufficient data",
+          "Cell value \u2014 Total PnL rounded to nearest dollar",
+        ],
+      },
+      {
+        heading: "Filters",
+        content:
+          "Use the market type dropdown, trigger minute buttons, and min delta selector to slice the data. Each filter combination shows a different view of the parameter space.",
+      },
+    ],
+  },
   Markets: {
     title: "Markets Overview",
     sections: [

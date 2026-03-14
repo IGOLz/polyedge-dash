@@ -90,7 +90,7 @@ export function CalibrationTable({ data }: CalibrationTableProps) {
                     {(parseFloat(row.price_bucket) * 100).toFixed(0)}%
                   </TableCell>
                   <TableCell className="text-right font-mono text-xs text-zinc-400">
-                    {parseInt(row.sample_count).toLocaleString()}
+                    {parseInt(row.sample_count).toLocaleString("en-US")}
                   </TableCell>
                   <TableCell className={`text-right font-mono text-xs ${colorClass}`}>
                     {winRate.toFixed(1)}%

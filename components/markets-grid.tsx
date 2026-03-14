@@ -51,7 +51,7 @@ function MarketCard({ market, index }: { market: MarketData; index: number }) {
             Total Markets
           </p>
           <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums text-zinc-200">
-            {market.resolved.toLocaleString()}
+            {market.resolved.toLocaleString("en-US")}
           </p>
         </div>
       </div>

@@ -58,7 +58,7 @@ export function VolatilityTable({ data }: VolatilityTableProps) {
                 {(parseFloat(row.min_range) * 100).toFixed(2)}%
               </TableCell>
               <TableCell className="text-right font-mono text-xs text-zinc-400">
-                {parseInt(row.sample_count).toLocaleString()}
+                {parseInt(row.sample_count).toLocaleString("en-US")}
               </TableCell>
             </TableRow>
           ))}
