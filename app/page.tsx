@@ -14,13 +14,13 @@ export const revalidate = REVALIDATE_SECONDS;
 
 export default function Dashboard() {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col overflow-x-hidden">
       <Navbar />
 
-      <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-10">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 md:px-6 py-6 md:py-10">
         <Hero />
 
-        <section className="mb-14">
+        <section className="mb-8 md:mb-14">
           <Suspense fallback={<OverviewCardsSkeleton />}>
             <OverviewCards />
           </Suspense>

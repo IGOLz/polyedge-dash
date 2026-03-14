@@ -36,7 +36,7 @@ export async function OverviewCards() {
       {cards.map((card, i) => (
         <div
           key={card.label}
-          className="group relative bg-zinc-950 p-6 transition-colors hover:bg-zinc-900/80 animate-slide-up"
+          className="group relative bg-zinc-950 p-4 md:p-6 transition-colors hover:bg-zinc-900/80 animate-slide-up"
           style={{ animationDelay: `${i * 80}ms` }}
         >
           <div className="absolute -top-10 -right-10 h-20 w-20 rounded-full bg-primary/[0.05] blur-2xl" />
@@ -44,7 +44,7 @@ export async function OverviewCards() {
           <p className="relative text-xs font-semibold uppercase tracking-[0.15em] text-primary/60">
             {card.label}
           </p>
-          <p className="relative mt-2 font-mono text-3xl font-bold tabular-nums text-zinc-50">
+          <p className="relative mt-2 font-mono text-2xl md:text-3xl font-bold tabular-nums text-zinc-50">
             {card.value}
           </p>
         </div>

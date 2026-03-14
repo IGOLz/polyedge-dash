@@ -18,7 +18,7 @@ function MarketCard({ market, index }: { market: MarketData; index: number }) {
   return (
     <Link
       href={`/markets?type=${market.marketType}`}
-      className="group relative overflow-hidden rounded-xl border border-primary/20 bg-zinc-900/80 p-6 backdrop-blur-sm transition-all duration-300 hover:border-primary/40 hover:bg-zinc-900 animate-slide-up cursor-pointer"
+      className="group relative overflow-hidden rounded-xl border border-primary/20 bg-zinc-900/80 p-4 md:p-6 backdrop-blur-sm transition-all duration-300 hover:border-primary/40 hover:bg-zinc-900 animate-slide-up cursor-pointer"
       style={{ animationDelay: `${index * 60}ms` }}
     >
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />

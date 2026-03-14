@@ -78,14 +78,14 @@ function MarketsContent() {
   const itemLabel = isAllAssets ? "time slot" : "market";
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col overflow-x-hidden">
       <Navbar />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-8">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 md:px-6 py-6 md:py-8">
         <div className="mb-6">
           <SectionHeader title="Market Browser" />
 
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-1.5">
+          <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6">
+            <div className="flex items-center gap-1.5 overflow-x-auto">
               {ASSET_FILTERS.map((f) => (
                 <FilterButton
                   key={f.value}
@@ -96,7 +96,7 @@ function MarketsContent() {
               ))}
             </div>
 
-            <div className="h-4 w-px bg-zinc-800/60" />
+            <div className="hidden md:block h-4 w-px bg-zinc-800/60" />
 
             <div className="flex items-center gap-1.5">
               {INTERVAL_FILTERS.map((f) => (

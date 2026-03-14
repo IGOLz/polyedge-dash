@@ -24,7 +24,7 @@ export async function AnalyticsSections() {
   return (
     <>
       {/* Win Rate by Price Bucket */}
-      <section className="mt-14">
+      <section className="mt-8 md:mt-14">
         <SectionHeader
           title="Win Rate by Price Bucket"
           description="Actual Up win rate grouped by price bucket at different time windows"
@@ -37,7 +37,7 @@ export async function AnalyticsSections() {
       </section>
 
       {/* Streak Detector */}
-      <section className="mt-14">
+      <section className="mt-8 md:mt-14">
         <SectionHeader
           title="Streak Detector"
           description="Current consecutive outcome streaks per market"
@@ -46,7 +46,7 @@ export async function AnalyticsSections() {
       </section>
 
       {/* Collection Health */}
-      <section className="mt-14">
+      <section className="mt-8 md:mt-14">
         <SectionHeader
           title="Collection Health"
           description="Tick collection rate compared to expected throughput"
@@ -61,7 +61,7 @@ export function AnalyticsSkeleton() {
   return (
     <>
       {[1, 2, 3].map((i) => (
-        <section key={i} className="mt-14">
+        <section key={i} className="mt-8 md:mt-14">
           <div className="mb-5">
             <div className="flex items-center gap-3">
               <div className="h-3 w-32 animate-pulse rounded bg-zinc-800" />

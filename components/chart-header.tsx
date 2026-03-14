@@ -31,12 +31,12 @@ export function ChartHeader({
         <p className="mt-1 font-mono text-sm text-zinc-300">
           {startTime} → {endTime}
           {tickCount != null && tickCount > 0 && (
-            <span className="text-zinc-400"> · {tickCount} ticks</span>
+            <span className="hidden md:inline text-zinc-400"> · {tickCount} ticks</span>
           )}
         </p>
         {children}
       </div>
-      <div className="flex items-center gap-3">
+      <div className="hidden md:flex items-center gap-3">
         {onExport && <DownloadButton label="CSV" onClick={onExport} />}
       </div>
     </div>
