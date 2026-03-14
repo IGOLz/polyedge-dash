@@ -1,12 +1,12 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Navbar } from "@/components/navbar";
 import { MarketChart } from "@/components/market-chart";
-import { MarketReplay } from "@/components/market-replay";
 import { MultiMarketChart } from "@/components/multi-market-chart";
 import { FilterButton } from "@/components/filter-button";
+import { GlassPanel } from "@/components/ui/glass-panel";
 import { OutcomeDot } from "@/components/outcome-dot";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { SectionHeader } from "@/components/section-header";
@@ -75,8 +75,6 @@ function MarketsContent() {
     handleIntervalFilter,
   } = useMarkets(initialAsset, initialInterval);
 
-  const [replayMode, setReplayMode] = useState(false);
-
   const itemCount = isAllAssets ? timeGroups.length : filteredMarkets.length;
   const itemLabel = isAllAssets ? "time slot" : "market";
 
@@ -111,23 +109,6 @@ function MarketsContent() {
                 />
               ))}
             </div>
-
-            {!isAllAssets && (
-              <button
-                onClick={() => setReplayMode((r) => !r)}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                  replayMode
-                    ? "bg-primary/20 text-primary border border-primary/30"
-                    : "bg-zinc-800/60 text-zinc-400 border border-zinc-800/40 hover:text-zinc-200 hover:border-zinc-700/60"
-                )}
-              >
-                <svg width="12" height="12" viewBox="0 0 14 14" fill="currentColor">
-                  <path d="M2 1.5L12 7L2 12.5V1.5Z" />
-                </svg>
-                Replay
-              </button>
-            )}
 
             <span className="ml-auto text-xs font-medium text-zinc-400">
               {itemCount} {itemLabel}{itemCount !== 1 ? "s" : ""}
@@ -183,12 +164,11 @@ function MarketsContent() {
               </div>
             </div>
 
-            <div
-              className="relative flex flex-col rounded-xl border border-primary/20 bg-zinc-900/80 backdrop-blur-sm p-6 overflow-hidden"
+            <GlassPanel
+              variant="glow-center"
+              className="flex flex-col p-6"
               style={{ height: "calc(100vh - 380px)", minHeight: "300px" }}
             >
-              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-              <div className="absolute -top-16 -right-16 h-32 w-32 rounded-full bg-primary/[0.04] blur-3xl" />
 
               {isAllAssets ? (
                 selectedGroup ? (
@@ -199,17 +179,13 @@ function MarketsContent() {
                   </div>
                 )
               ) : selectedMarket ? (
-                replayMode ? (
-                  <MarketReplay market={selectedMarket} />
-                ) : (
-                  <MarketChart market={selectedMarket} />
-                )
+                <MarketChart market={selectedMarket} />
               ) : (
                 <div className="flex flex-1 items-center justify-center text-sm text-zinc-400">
                   {filteredMarkets.length === 0 ? "No markets match this filter" : "Select a market above"}
                 </div>
               )}
-            </div>
+            </GlassPanel>
           </>
         )}
       </main>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { GlassPanel } from "@/components/ui/glass-panel";
 import {
   BarChart,
   Bar,
@@ -113,10 +114,9 @@ function ChartGrid({ data }: { data: CalibrationRow[] }) {
 
   if (marketTypes.length === 0) {
     return (
-      <div className="relative overflow-hidden rounded-xl border border-primary/20 bg-zinc-900/80 p-8 text-center text-sm text-zinc-500 backdrop-blur-sm">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+      <GlassPanel variant="glow-center" className="p-8 text-center text-sm text-zinc-500">
         Not enough data yet
-      </div>
+      </GlassPanel>
     );
   }
 
@@ -131,10 +131,7 @@ function ChartGrid({ data }: { data: CalibrationRow[] }) {
           }));
 
         return (
-          <div key={type} className="relative overflow-hidden rounded-xl border border-primary/20 bg-zinc-900/80 p-6 backdrop-blur-sm">
-            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-            <div className="absolute -top-12 -right-12 h-24 w-24 rounded-full bg-primary/[0.06] blur-2xl" />
-
+          <GlassPanel key={type} variant="glow-tl" className="p-6">
             <div className="relative">
               <h4 className="mb-4 text-2xl font-bold tracking-tight text-zinc-100">
                 {assetLabel(type)}
@@ -185,7 +182,7 @@ function ChartGrid({ data }: { data: CalibrationRow[] }) {
                 </ResponsiveContainer>
               )}
             </div>
-          </div>
+          </GlassPanel>
         );
       })}
     </div>

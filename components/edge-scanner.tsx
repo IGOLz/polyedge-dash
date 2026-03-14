@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { parseMarketType, getAssetColor } from "@/lib/formatters";
 import { sortMarketTypes } from "@/lib/constants";
+import { GlassPanel } from "@/components/ui/glass-panel";
 
 interface EdgeRow {
   market_type: string;
@@ -40,13 +41,12 @@ export function EdgeScanner({ data }: { data: EdgeRow[] }) {
 
   if (data.length === 0) {
     return (
-      <div className="relative overflow-hidden rounded-xl border border-primary/20 bg-zinc-900/80 p-8 text-center backdrop-blur-sm">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-        <div className="flex flex-col items-center gap-2">
+      <GlassPanel variant="glow-tr" className="p-8 text-center">
+        <div className="relative flex flex-col items-center gap-2">
           <p className="text-sm text-zinc-400">No significant edges detected</p>
           <p className="text-xs text-zinc-500">Not enough data or no price buckets deviate from implied probability</p>
         </div>
-      </div>
+      </GlassPanel>
     );
   }
 
@@ -54,11 +54,8 @@ export function EdgeScanner({ data }: { data: EdgeRow[] }) {
   const hasMore = filteredData.length > COLLAPSED_COUNT;
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-primary/20 bg-zinc-900/80 backdrop-blur-sm">
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-      <div className="absolute -top-16 -right-16 h-32 w-32 rounded-full bg-primary/[0.04] blur-3xl" />
-
-      <div className="border-b border-zinc-800/60 px-6 py-3 flex items-center gap-2">
+    <GlassPanel variant="glow-tr">
+      <div className="relative border-b border-zinc-800/60 px-6 py-3 flex items-center gap-2">
         <button
           onClick={() => { setSelectedMarket("all"); setExpanded(false); }}
           className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
@@ -172,6 +169,6 @@ export function EdgeScanner({ data }: { data: EdgeRow[] }) {
           {expanded ? "Show less" : `Show ${filteredData.length - COLLAPSED_COUNT} more`}
         </button>
       )}
-    </div>
+    </GlassPanel>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { sortMarketTypes } from "@/lib/constants";
+import { GlassPanel } from "@/components/ui/glass-panel";
 import {
   BarChart,
   Bar,
@@ -57,18 +58,14 @@ export function TimeOfDay({ data }: TimeOfDayProps) {
 
   if (marketTypes.length === 0) {
     return (
-      <div className="relative overflow-hidden rounded-xl border border-primary/20 bg-zinc-900/80 p-8 text-center text-sm text-zinc-500 backdrop-blur-sm">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+      <GlassPanel variant="glow-center" className="p-8 text-center text-sm text-zinc-500">
         Not enough data yet
-      </div>
+      </GlassPanel>
     );
   }
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-primary/20 bg-zinc-900/80 p-6 backdrop-blur-sm">
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-      <div className="absolute -top-16 -right-16 h-32 w-32 rounded-full bg-primary/[0.04] blur-3xl" />
-
+    <GlassPanel variant="glow-center" className="p-6">
       <div className="relative">
         {/* Market type selector */}
         <div className="mb-5 flex items-center gap-2 flex-wrap">
@@ -164,6 +161,6 @@ export function TimeOfDay({ data }: TimeOfDayProps) {
         </ResponsiveContainer>
 
       </div>
-    </div>
+    </GlassPanel>
   );
 }

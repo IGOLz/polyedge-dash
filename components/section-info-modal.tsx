@@ -231,7 +231,7 @@ const SECTION_INFO: Record<string, SectionInfo> = {
       },
       {
         heading: "How to read it",
-        content: "Each card represents one market's data collection status:",
+        content: "Each card represents one market's data collection status, with an interval badge (5m or 15m) indicating the market type:",
         bullets: [
           "Healthy (green, \u226590%) \u2014 Pipeline is collecting data at or near the expected rate",
           "Degraded (yellow, 70\u201390%) \u2014 Some data is being missed, but most is still collected",
@@ -254,6 +254,169 @@ const SECTION_INFO: Record<string, SectionInfo> = {
       },
     ],
   },
+  "Calibration Analysis": {
+    title: "Calibration Analysis",
+    sections: [
+      {
+        heading: "What is this?",
+        content:
+          "Calibration measures whether the market is pricing contracts accurately. When a contract trades at 40\u00a2, the market implies a 40% chance of Up. Calibration checks whether Up actually wins 40% of the time at that price level.",
+      },
+      {
+        heading: "How to read it",
+        content: "Each row represents a price bucket at a specific time checkpoint:",
+        bullets: [
+          "Price Bucket \u2014 The contract price range (e.g., 47.5\u00a2 means contracts trading around 47.5%)",
+          "Expected Win Rate \u2014 What the market price implies (same as the bucket center)",
+          "Actual Win Rate \u2014 What historically happened at that price level",
+          "Deviation \u2014 The gap between expected and actual. Positive = Up wins more than priced, Negative = Up wins less",
+          "Significant \u2014 Whether the deviation is statistically significant (p < 0.05)",
+        ],
+      },
+      {
+        heading: "Checkpoint selector",
+        content:
+          "The time tabs (30s, 60s, 120s, etc.) let you examine calibration at different points during the market window. Early checkpoints (30s) show how the market is priced shortly after opening. Later checkpoints (300s) show pricing closer to resolution.",
+      },
+      {
+        heading: "What to look for",
+        content:
+          "Rows highlighted with a left border accent are statistically significant. Green deviations mean Up wins more than the market expects \u2014 the market is underpricing Up. Red deviations mean the opposite. Clusters of significant deviations in the same direction suggest systematic mispricing.",
+      },
+      {
+        heading: "Important note",
+        content:
+          "A minimum of 10 samples per bucket is required. Small sample sizes can produce large but meaningless deviations. Focus on buckets with high sample counts for the most reliable signals.",
+      },
+    ],
+  },
+  "Price Trajectory": {
+    title: "Price Trajectory \u2014 Momentum Analysis",
+    sections: [
+      {
+        heading: "What is this?",
+        content:
+          "Price Trajectory examines whether the direction of price movement in the first 60 seconds of a market window predicts the final outcome. If the price is rising at the 60-second mark, does Up end up winning more often?",
+      },
+      {
+        heading: "How to read it",
+        content: "Each card represents one market type:",
+        bullets: [
+          "Rising at 60s \u2192 Up wins X% \u2014 When the price is trending upward at the 60-second mark, how often does Up win",
+          "Sample count \u2014 Number of markets where this pattern was observed",
+          "Reversal cases \u2014 Markets where the price direction reversed after 60 seconds, and what percentage still resolved Up",
+          "Colored dot \u2014 Green = momentum > 60%, Red = momentum < 50%, Yellow = neutral",
+        ],
+      },
+      {
+        heading: "Summary banner",
+        content:
+          "The banner at the top shows how many of the 8 market types exhibit a momentum effect (Up win rate > 60% when rising at 60s). Green = strong momentum across markets, Yellow = moderate, Red = weak or no momentum effect.",
+      },
+      {
+        heading: "Practical use",
+        content:
+          "If momentum is strong, it suggests that early price movement carries predictive power. This could mean that informed participants set direction early. If reversals are common, it suggests mean reversion \u2014 early moves often get corrected.",
+      },
+    ],
+  },
+  "Time of Day Patterns": {
+    title: "Time of Day Patterns",
+    sections: [
+      {
+        heading: "What is this?",
+        content:
+          "This chart shows whether the time of day (in UTC) has any influence on whether markets resolve Up or Down. It breaks down the Up win rate by hour across the full 24-hour day.",
+      },
+      {
+        heading: "How to read it",
+        content: "Each bar represents one hour of the day:",
+        bullets: [
+          "Green bars (above 60%) \u2014 Up wins significantly more often during this hour",
+          "Red bars (below 40%) \u2014 Down wins significantly more often during this hour",
+          "Grey bars (40\u201360%) \u2014 No clear directional bias",
+          "Dashed line at 50% \u2014 The baseline of no edge",
+          "Greyed-out bars \u2014 Hours with fewer than 10 samples, insufficient data",
+        ],
+      },
+      {
+        heading: "Stat boxes",
+        content:
+          "The two stat boxes below show the most bullish and most bearish hours. These are the hours with the highest and lowest Up win rates respectively, considering only hours with sufficient sample sizes (\u226510 samples).",
+      },
+      {
+        heading: "Why it matters",
+        content:
+          "Time-of-day patterns can reflect global trading activity cycles. For example, certain hours might coincide with US/EU/Asian session opens where buying or selling pressure differs. If a specific hour consistently shows a bias, it could be a repeatable edge.",
+      },
+    ],
+  },
+  "Outcome Streaks": {
+    title: "Outcome Streaks \u2014 Sequential Analysis",
+    sections: [
+      {
+        heading: "What is this?",
+        content:
+          "The Streak Analysis examines what happens after a specific sequence of Up and Down outcomes. For example, after three consecutive Up results (\u2191\u2191\u2191), does the next market lean Up or Down? This tests whether past outcomes influence future results.",
+      },
+      {
+        heading: "How to read it",
+        content: "Each row represents a specific outcome pattern:",
+        bullets: [
+          "Pattern \u2014 The preceding sequence of outcomes (green arrows = Up, red arrows = Down)",
+          "Sample Count \u2014 How many times this exact sequence occurred",
+          "Next Up Win Rate \u2014 Probability that the next market resolves Up after this pattern",
+          "Edge \u2014 Deviation from 50%. Positive = Up is more likely next, Negative = Down is more likely",
+        ],
+      },
+      {
+        heading: "Sorting and filtering",
+        content:
+          "Rows are sorted by absolute edge (largest deviations first) and filtered to show only patterns with at least 15 samples. This ensures you see the most actionable patterns with reasonable statistical backing.",
+      },
+      {
+        heading: "Gambler's fallacy warning",
+        content:
+          "In truly random 50/50 outcomes, the previous results have no influence on the next one. However, prediction markets may not be perfectly random \u2014 participant behavior, momentum effects, and sentiment can create sequential dependencies. Always verify with sample size before acting on streak patterns.",
+      },
+    ],
+  },
+  "Previous Market Influence": {
+    title: "Previous Market Influence",
+    sections: [
+      {
+        heading: "What is this?",
+        content:
+          "This section examines whether the outcome of the previous market window affects the early pricing of the next market. Does a previous Up result cause the next market to start with a higher or lower price?",
+      },
+      {
+        heading: "How to read it",
+        content: "Each row shows what happens after a specific previous outcome:",
+        bullets: [
+          "Previous Outcome \u2014 Whether the prior market resolved Up or Down",
+          "Avg Price at 30s \u2014 The average contract price 30 seconds into the next market window",
+          "Sample Count \u2014 Number of transitions observed",
+          "Interpretation \u2014 Whether the carry-over effect is bullish, bearish, or neutral",
+        ],
+      },
+      {
+        heading: "Interpretation thresholds",
+        content: "The carry-over effect is categorized as:",
+        bullets: [
+          "Bullish carry-over (>55\u00a2) \u2014 Previous outcome pushes next market's price up significantly",
+          "Slightly bullish (52\u201355\u00a2) \u2014 Small upward bias",
+          "No significant effect (48\u201352\u00a2) \u2014 Previous outcome doesn't meaningfully affect the next market",
+          "Slightly bearish (45\u201348\u00a2) \u2014 Small downward bias",
+          "Bearish carry-over (<45\u00a2) \u2014 Previous outcome pushes next market's price down significantly",
+        ],
+      },
+      {
+        heading: "Practical use",
+        content:
+          "If there's a strong carry-over effect, it means the market hasn't fully absorbed the previous result. This could present an opportunity \u2014 for example, if after a Down result the next market consistently starts underpriced, there may be a systematic Up edge in early trading.",
+      },
+    ],
+  },
   Markets: {
     title: "Markets Overview",
     sections: [
@@ -266,16 +429,14 @@ const SECTION_INFO: Record<string, SectionInfo> = {
         heading: "Card metrics",
         content: "Each market card displays:",
         bullets: [
-          "Resolved \u2014 Number of markets that have reached their final outcome (Up or Down)",
-          "Total \u2014 Total number of markets including active and resolved",
-          "Ticks 24h \u2014 Price data points collected in the last 24 hours",
-          "Outcomes \u2014 Count of Up wins (green) vs Down wins (red) across all resolved markets",
+          "Win Rate 24h \u2014 The Up win rate over the last 24 hours, colored green (\u226550%) or red (<50%)",
+          "Total Markets \u2014 Total number of resolved markets across all time",
         ],
       },
       {
         heading: "Clicking a card",
         content:
-          "Click any market card to open the detailed Markets page, filtered to that specific market type. There you can browse individual markets, view price charts, and replay market histories.",
+          "Click any market card to open the detailed Markets page, filtered to that specific market type. There you can browse individual markets and view price charts.",
       },
     ],
   },

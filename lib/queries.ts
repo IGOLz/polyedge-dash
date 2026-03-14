@@ -474,3 +474,88 @@ export async function getStreakData() {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Analysis page — all data in one call
+// ---------------------------------------------------------------------------
+
+export async function getAnalysisData() {
+  const runs = await query<{
+    id: number;
+    ran_at: string;
+    markets_analyzed: number;
+    total_ticks: number;
+    date_range_start: string;
+    date_range_end: string;
+  }>("SELECT * FROM analysis_runs ORDER BY ran_at DESC LIMIT 1");
+
+  if (runs.length === 0) {
+    return {
+      run: null,
+      calibration: [],
+      trajectory: [],
+      timeofday: [],
+      sequential: [],
+      heatmap: [],
+    };
+  }
+
+  const run = runs[0];
+  const runId = run.id;
+
+  const [calibration, trajectory, timeofday, sequential, heatmap] =
+    await Promise.all([
+      query<{
+        run_id: number;
+        market_type: string;
+        checkpoint_seconds: number;
+        price_bucket: number;
+        sample_count: number;
+        expected_win_rate: number;
+        actual_win_rate: number;
+        deviation: number;
+        significant: boolean;
+      }>(
+        "SELECT * FROM calibration_results WHERE run_id = $1 ORDER BY market_type, checkpoint_seconds, price_bucket",
+        [runId]
+      ),
+      query<{
+        run_id: number;
+        market_type: string;
+        checkpoint_seconds: number;
+        outcome: string;
+        sample_count: number;
+        win_rate: number;
+        reversal_count: number;
+        reversal_resolved_up_pct: number;
+      }>(
+        "SELECT * FROM trajectory_results WHERE run_id = $1 ORDER BY market_type, checkpoint_seconds, outcome",
+        [runId]
+      ),
+      query<{
+        run_id: number;
+        market_type: string;
+        hour_utc: number;
+        sample_count: number;
+        up_win_rate: number;
+      }>(
+        "SELECT * FROM timeofday_results WHERE run_id = $1 ORDER BY market_type, hour_utc",
+        [runId]
+      ),
+      query<{
+        run_id: number;
+        market_type: string;
+        analysis_type: string;
+        key: string;
+        sample_count: number;
+        value: number;
+        metadata: string;
+      }>(
+        "SELECT * FROM sequential_results WHERE run_id = $1 ORDER BY market_type, analysis_type, key",
+        [runId]
+      ),
+      getCalibrationHeatmapData(),
+    ]);
+
+  return { run, calibration, trajectory, timeofday, sequential, heatmap };
+}
+

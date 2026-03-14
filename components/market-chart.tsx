@@ -9,6 +9,7 @@ import { CHART_BASE_TIME } from "@/lib/constants";
 import { formatUTCTime, getOutcomeColors, getOutcomeLabel } from "@/lib/formatters";
 import { exportSingleMarketCsv } from "@/lib/csv";
 import { ChartHeader } from "./chart-header";
+import { DownloadButton } from "./download-button";
 import { LoadingSpinner } from "./loading-spinner";
 
 export function MarketChart({ market }: { market: Market }) {
@@ -104,15 +105,17 @@ export function MarketChart({ market }: { market: Market }) {
           startTime={startTime}
           endTime={endTime}
           tickCount={ticks.length}
-          onExport={() => exportSingleMarketCsv(ticks, market.market_type, market.market_id)}
         />
-        <div className="text-right">
-          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-zinc-400">
-            Result
-          </p>
-          <p className={`text-lg font-bold uppercase ${outcomeColor}`}>
-            {outcomeLabel}
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="text-right">
+            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-zinc-400">
+              Result
+            </p>
+            <p className={`text-lg font-bold uppercase ${outcomeColor}`}>
+              {outcomeLabel}
+            </p>
+          </div>
+          <DownloadButton label="CSV" onClick={() => exportSingleMarketCsv(ticks, market.market_type, market.market_id)} />
         </div>
       </div>
 

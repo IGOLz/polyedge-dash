@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { sortMarketTypes } from "@/lib/constants";
+import { GlassPanel } from "@/components/ui/glass-panel";
 
 interface HeatmapRow {
   market_type: string;
@@ -71,17 +72,14 @@ function HeatmapGrid({ data, marketTypes }: { data: HeatmapRow[]; marketTypes: s
 
   if (timeOffsets.length === 0) {
     return (
-      <div className="relative overflow-hidden rounded-xl border border-primary/20 bg-zinc-900/80 p-8 text-center text-sm text-zinc-500 backdrop-blur-sm">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+      <GlassPanel variant="glow-wide" className="p-8 text-center text-sm text-zinc-500">
         Not enough data yet
-      </div>
+      </GlassPanel>
     );
   }
 
   return (
-    <div className="relative rounded-xl border border-primary/20 bg-zinc-900/80 p-6 backdrop-blur-sm overflow-visible">
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-      <div className="absolute -top-16 -right-16 h-32 w-32 rounded-full bg-primary/[0.04] blur-3xl" />
+    <GlassPanel variant="glow-wide" className="p-6 overflow-visible">
 
       <div className="relative" ref={containerRef} onMouseLeave={() => setTooltip(null)}>
         {/* Asset selector */}
@@ -241,7 +239,7 @@ function HeatmapGrid({ data, marketTypes }: { data: HeatmapRow[]; marketTypes: s
           <span className="text-[10px] text-zinc-500">Up edge</span>
         </div>
       </div>
-    </div>
+    </GlassPanel>
   );
 }
 
@@ -250,10 +248,9 @@ export function CalibrationHeatmap({ data }: CalibrationHeatmapProps) {
 
   if (marketTypes.length === 0) {
     return (
-      <div className="relative overflow-hidden rounded-xl border border-primary/20 bg-zinc-900/80 p-8 text-center text-sm text-zinc-500 backdrop-blur-sm">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+      <GlassPanel variant="glow-wide" className="p-8 text-center text-sm text-zinc-500">
         Not enough data yet
-      </div>
+      </GlassPanel>
     );
   }
 

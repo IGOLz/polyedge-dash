@@ -1,6 +1,7 @@
 "use client";
 
 import { ASSET_COLORS } from "@/lib/constants";
+import { GlassPanel } from "@/components/ui/glass-panel";
 
 interface CorrelationRow {
   asset_a: string;
@@ -37,10 +38,9 @@ function getCorrelationLabel(pct: number): string {
 export function CrossAssetCorrelation({ data }: CrossAssetCorrelationProps) {
   if (data.length === 0) {
     return (
-      <div className="relative overflow-hidden rounded-xl border border-primary/20 bg-zinc-900/80 p-8 text-center text-sm text-zinc-500 backdrop-blur-sm">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+      <GlassPanel variant="glow-split" className="p-8 text-center text-sm text-zinc-500">
         Not enough data yet
-      </div>
+      </GlassPanel>
     );
   }
 
@@ -72,10 +72,7 @@ export function CrossAssetCorrelation({ data }: CrossAssetCorrelationProps) {
                 const colorB = ASSET_COLORS[row.asset_b] || "#e4f600";
 
                 return (
-                  <div key={`${row.asset_a}_${row.asset_b}`} className="relative overflow-hidden rounded-xl border border-primary/20 bg-zinc-900/80 p-6 backdrop-blur-sm">
-                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-                    <div className="absolute -top-12 -right-12 h-24 w-24 rounded-full bg-primary/[0.06] blur-2xl" />
-
+                  <GlassPanel key={`${row.asset_a}_${row.asset_b}`} variant="glow-split" className="p-6">
                     <div className="relative">
                       {/* Asset pair */}
                       <div className="mb-4 flex items-center gap-2">
@@ -123,7 +120,7 @@ export function CrossAssetCorrelation({ data }: CrossAssetCorrelationProps) {
                         <p className="text-[10px] text-zinc-500 text-right">{total} pairs analyzed</p>
                       </div>
                     </div>
-                  </div>
+                  </GlassPanel>
                 );
               })}
             </div>

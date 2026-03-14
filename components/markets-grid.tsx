@@ -13,56 +13,45 @@ type MarketData = Awaited<ReturnType<typeof getMarketsByType>>[number];
 
 function MarketCard({ market, index }: { market: MarketData; index: number }) {
   const { asset, interval } = parseMarketType(market.marketType);
-  const total = market.resolved + market.active + market.unknownOutcome;
 
   return (
     <Link
       href={`/markets?type=${market.marketType}`}
-      className="group relative overflow-hidden rounded-xl border border-primary/20 bg-zinc-900/80 p-4 md:p-6 backdrop-blur-sm transition-all duration-300 hover:border-primary/40 hover:bg-zinc-900 animate-slide-up cursor-pointer"
+      className="group relative overflow-hidden rounded-xl border border-primary/20 bg-zinc-950 p-4 md:p-6 transition-all duration-300 hover:border-primary/40 hover:bg-zinc-900/80 animate-slide-up cursor-pointer"
       style={{ animationDelay: `${index * 60}ms` }}
     >
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-      <div className="absolute -top-12 -right-12 h-24 w-24 rounded-full bg-primary/[0.06] blur-2xl" />
+      <div className="absolute -bottom-10 -right-10 h-28 w-28 rounded-full bg-primary/[0.05] blur-3xl pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-t from-primary/[0.02] to-transparent pointer-events-none" />
 
-      <div className="relative">
+      <div className="relative flex items-center justify-between">
         <span className="text-2xl font-bold tracking-tight text-zinc-100">
           {ASSET_NAMES[asset] || asset}
         </span>
+        <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary border border-primary/20">
+          {interval}
+        </span>
       </div>
 
-      <div className="relative mt-5 grid grid-cols-2 gap-x-4 gap-y-3">
+      <div className="relative mt-5 flex items-center gap-6">
         <div>
           <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
-            Resolved
+            Win Rate 24h
+          </p>
+          <p className={`mt-0.5 font-mono text-sm font-semibold tabular-nums ${
+            market.resolved24h > 0
+              ? market.upWinRate24h >= 50 ? "text-emerald-400" : "text-red-400"
+              : "text-zinc-200"
+          }`}>
+            {market.resolved24h > 0 ? `${market.upWinRate24h.toFixed(1)}%` : "—"}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+            Total Markets
           </p>
           <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums text-zinc-200">
             {market.resolved.toLocaleString()}
-          </p>
-        </div>
-        <div>
-          <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
-            Total
-          </p>
-          <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums text-zinc-200">
-            {total.toLocaleString()}
-          </p>
-        </div>
-        <div>
-          <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
-            Ticks 24h
-          </p>
-          <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums text-zinc-200">
-            {market.ticks24h.toLocaleString()}
-          </p>
-        </div>
-        <div>
-          <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
-            Outcomes
-          </p>
-          <p className="mt-0.5 flex items-center gap-1.5">
-            <span className="font-mono text-sm tabular-nums text-emerald-400">{market.upWins.toLocaleString()}</span>
-            <span className="text-[10px] text-zinc-600">/</span>
-            <span className="font-mono text-sm tabular-nums text-red-400">{market.downWins.toLocaleString()}</span>
           </p>
         </div>
       </div>
@@ -77,23 +66,10 @@ export async function MarketsGrid() {
   const markets15m = markets.filter((m) => m.marketType.endsWith("_15m"));
 
   return (
-    <div className="space-y-8">
-      <div>
-        <p className="mb-4 text-sm font-semibold text-zinc-300">5m Markets</p>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {markets5m.map((market, i) => (
-            <MarketCard key={market.marketType} market={market} index={i} />
-          ))}
-        </div>
-      </div>
-      <div>
-        <p className="mb-4 text-sm font-semibold text-zinc-300">15m Markets</p>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {markets15m.map((market, i) => (
-            <MarketCard key={market.marketType} market={market} index={i + markets5m.length} />
-          ))}
-        </div>
-      </div>
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {[...markets5m, ...markets15m].map((market, i) => (
+        <MarketCard key={market.marketType} market={market} index={i} />
+      ))}
     </div>
   );
 }
@@ -106,10 +82,20 @@ export function MarketsGridSkeleton() {
           key={i}
           className="rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-6"
         >
-          <div className="h-7 w-16 animate-pulse rounded bg-zinc-800" />
-          <div className="mt-5 h-9 w-24 animate-pulse rounded bg-zinc-800" />
-          <div className="mt-4 h-1.5 w-full animate-pulse rounded-full bg-zinc-800" />
-          <div className="mt-4 h-4 w-28 animate-pulse rounded bg-zinc-800" />
+          <div className="flex items-center justify-between">
+            <div className="h-7 w-24 animate-pulse rounded bg-zinc-800" />
+            <div className="h-5 w-8 animate-pulse rounded-md bg-zinc-800" />
+          </div>
+          <div className="mt-5 flex items-center gap-6">
+            <div>
+              <div className="h-2.5 w-16 animate-pulse rounded bg-zinc-800" />
+              <div className="mt-1.5 h-4 w-12 animate-pulse rounded bg-zinc-800" />
+            </div>
+            <div>
+              <div className="h-2.5 w-20 animate-pulse rounded bg-zinc-800" />
+              <div className="mt-1.5 h-4 w-10 animate-pulse rounded bg-zinc-800" />
+            </div>
+          </div>
         </div>
       ))}
     </div>

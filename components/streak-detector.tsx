@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { GlassPanel } from "@/components/ui/glass-panel";
 
 const ASSET_NAMES: Record<string, string> = {
   btc: "Bitcoin",
@@ -25,10 +26,7 @@ interface StreakDetectorProps {
 
 function StreakCard({ streak }: { streak: StreakData }) {
   return (
-    <div className="relative overflow-hidden rounded-xl border border-primary/20 bg-zinc-900/80 p-6 backdrop-blur-sm">
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-      <div className="absolute -top-12 -right-12 h-24 w-24 rounded-full bg-primary/[0.06] blur-2xl" />
-
+    <GlassPanel variant="glow-br" className="p-6">
       <div className="relative">
         <div className="mb-4 flex items-center justify-between">
           <span className="text-2xl font-bold tracking-tight text-zinc-100">
@@ -62,17 +60,16 @@ function StreakCard({ streak }: { streak: StreakData }) {
           Last {streak.lastTen.length} outcomes (newest first)
         </p>
       </div>
-    </div>
+    </GlassPanel>
   );
 }
 
 export function StreakDetector({ data }: StreakDetectorProps) {
   if (data.length === 0) {
     return (
-      <div className="relative overflow-hidden rounded-xl border border-primary/20 bg-zinc-900/80 p-8 text-center text-sm text-zinc-500 backdrop-blur-sm">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+      <GlassPanel variant="glow-br" className="p-8 text-center text-sm text-zinc-500">
         Not enough data yet
-      </div>
+      </GlassPanel>
     );
   }
 

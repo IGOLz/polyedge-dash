@@ -1,3 +1,5 @@
+import { GlassPanel } from "@/components/ui/glass-panel";
+
 const ASSET_NAMES: Record<string, string> = {
   btc: "Bitcoin",
   eth: "Ethereum",
@@ -40,32 +42,35 @@ function getHealthStatus(actual: number, expected: number) {
   return { label: "Critical", color: "text-red-400", bg: "bg-red-400" };
 }
 
+function intervalLabel(marketType: string): string {
+  return marketType.split("_")[1] || "";
+}
+
 function HealthCard({ rate }: { rate: TickRate }) {
-  const { expected, actual, label } = getExpectedAndActual(rate);
+  const { expected, actual } = getExpectedAndActual(rate);
   const status = getHealthStatus(actual, expected);
   const pct = expected > 0 ? ((actual / expected) * 100).toFixed(0) : "—";
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-primary/20 bg-zinc-900/80 p-6 backdrop-blur-sm">
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-      <div className="absolute -top-12 -right-12 h-24 w-24 rounded-full bg-primary/[0.06] blur-2xl" />
-
+    <GlassPanel variant="glow-tl" className="p-6">
       <div className="relative">
         <div className="mb-4 flex items-center justify-between">
           <span className="text-2xl font-bold tracking-tight text-zinc-100">
             {assetLabel(rate.marketType)}
           </span>
-          <div className="flex items-center gap-1.5">
-            <div className={`h-2 w-2 rounded-full ${status.bg}`} />
-            <span className={`text-xs font-medium ${status.color}`}>
-              {status.label}
-            </span>
-          </div>
+          <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary border border-primary/20">
+            {intervalLabel(rate.marketType)}
+          </span>
         </div>
 
         <div className="mt-5 space-y-2">
-          <div className="flex justify-between">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">{label}</p>
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-1.5">
+              <div className={`h-2 w-2 rounded-full ${status.bg}`} />
+              <span className={`text-xs font-medium ${status.color}`}>
+                {status.label}
+              </span>
+            </div>
             <span className="font-mono text-sm font-semibold tabular-nums text-zinc-200">
               {actual} / {expected}
             </span>
@@ -79,17 +84,16 @@ function HealthCard({ rate }: { rate: TickRate }) {
           <p className="text-right text-[10px] text-zinc-400">{pct}% of expected</p>
         </div>
       </div>
-    </div>
+    </GlassPanel>
   );
 }
 
 export function CollectionHealth({ tickRates }: CollectionHealthProps) {
   if (tickRates.length === 0) {
     return (
-      <div className="relative overflow-hidden rounded-xl border border-primary/20 bg-zinc-900/80 p-8 text-center text-sm text-zinc-500 backdrop-blur-sm">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+      <GlassPanel variant="glow-tl" className="p-8 text-center text-sm text-zinc-500">
         Not enough data yet
-      </div>
+      </GlassPanel>
     );
   }
 
@@ -97,23 +101,10 @@ export function CollectionHealth({ tickRates }: CollectionHealthProps) {
   const rates15m = tickRates.filter((r) => r.marketType.endsWith("_15m"));
 
   return (
-    <div className="space-y-8">
-      <div>
-        <p className="mb-4 text-sm font-semibold text-zinc-300">5m Markets</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {rates5m.map((rate) => (
-            <HealthCard key={rate.marketType} rate={rate} />
-          ))}
-        </div>
-      </div>
-      <div>
-        <p className="mb-4 text-sm font-semibold text-zinc-300">15m Markets</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {rates15m.map((rate) => (
-            <HealthCard key={rate.marketType} rate={rate} />
-          ))}
-        </div>
-      </div>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {[...rates5m, ...rates15m].map((rate) => (
+        <HealthCard key={rate.marketType} rate={rate} />
+      ))}
     </div>
   );
 }
