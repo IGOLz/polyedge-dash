@@ -6,11 +6,26 @@ import { usePathname } from "next/navigation";
 import { useLiveClock } from "@/hooks/use-live-clock";
 import { DownloadButton } from "./download-button";
 import { cn } from "@/lib/utils";
+import {
+  LayoutDashboard,
+  BarChart3,
+  FlaskConical,
+  Bot,
+  Layers,
+} from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 const NAV_LINKS = [
   { href: "/", label: "Dashboard" },
   { href: "/markets", label: "Markets" },
   { href: "/analysis", label: "Lab Analysis" },
+  { href: "/bot", label: "Bot" },
 ];
 
 const STRATEGY_LINKS = [
@@ -120,132 +135,101 @@ function StrategiesDropdown() {
 }
 
 // ---------------------------------------------------------------------------
-// Mobile menu
+// Mobile bottom tab bar
 // ---------------------------------------------------------------------------
 
-function MobileMenu() {
-  const pathname = usePathname();
-  const [open, setOpen] = useState(false);
-  const [strategiesOpen, setStrategiesOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+const TAB_ITEMS = [
+  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/markets", label: "Markets", icon: BarChart3 },
+  { href: "/analysis", label: "Lab", icon: FlaskConical },
+  { href: "/bot", label: "Bot", icon: Bot },
+];
 
+function MobileBottomNav() {
+  const pathname = usePathname();
+  const [strategiesOpen, setStrategiesOpen] = useState(false);
+  const isStrategyActive = STRATEGY_LINKS.some((s) => pathname === s.href);
+
+  // Close sheet on route change
   useEffect(() => {
-    setOpen(false);
     setStrategiesOpen(false);
   }, [pathname]);
 
-  // Close on outside click
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    if (open) {
-      document.addEventListener("mousedown", handleClick);
-      return () => document.removeEventListener("mousedown", handleClick);
-    }
-  }, [open]);
-
-  const isStrategyActive = STRATEGY_LINKS.some((s) => pathname === s.href);
-
   return (
-    <div ref={ref} className="md:hidden">
-      {/* Hamburger */}
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center justify-center h-8 w-8 rounded-md text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 transition-colors"
-        aria-label="Menu"
-      >
-        {open ? (
-          <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-            <path d="M4 4l8 8M12 4l-8 8" />
-          </svg>
-        ) : (
-          <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-            <path d="M2 4h12M2 8h12M2 12h12" />
-          </svg>
-        )}
-      </button>
-
-      {/* Panel */}
-      {open && (
-        <div className="absolute inset-x-0 top-full z-50 border-b border-zinc-800/60 bg-zinc-950/95 backdrop-blur-xl shadow-xl shadow-black/40">
-          <div className="mx-auto max-w-7xl px-4 py-3 space-y-1">
-            {NAV_LINKS.map(({ href, label }) => (
+    <div className="fixed bottom-0 inset-x-0 z-50 md:hidden">
+      {/* Frosted glass bar */}
+      <nav className="border-t border-zinc-800/60 bg-zinc-950/90 backdrop-blur-2xl safe-bottom">
+        <div className="grid grid-cols-5 items-center">
+          {TAB_ITEMS.map(({ href, label, icon: Icon }) => {
+            const active = pathname === href;
+            return (
               <Link
                 key={href}
                 href={href}
                 className={cn(
-                  "flex items-center gap-2.5 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
-                  pathname === href
-                    ? "bg-primary/[0.08] text-primary"
-                    : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
+                  "relative flex flex-col items-center gap-0.5 py-2 transition-colors duration-200",
+                  active
+                    ? "text-primary"
+                    : "text-zinc-500 active:text-zinc-300"
                 )}
               >
-                {pathname === href && (
-                  <span className="h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
+                <Icon className={cn("h-5 w-5", active && "drop-shadow-[0_0_6px_hsl(var(--primary)/0.5)]")} strokeWidth={active ? 2.2 : 1.5} />
+                <span className="text-[10px] font-medium leading-none">{label}</span>
+                {active && (
+                  <span className="absolute top-0 h-0.5 w-8 rounded-b-full bg-primary" />
                 )}
-                <span className={pathname !== href ? "pl-4" : ""}>{label}</span>
               </Link>
-            ))}
+            );
+          })}
 
-            {/* Strategies accordion */}
-            <button
-              onClick={() => setStrategiesOpen((v) => !v)}
-              className={cn(
-                "flex w-full items-center justify-between rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
-                isStrategyActive
-                  ? "bg-primary/[0.08] text-primary"
-                  : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
-              )}
-            >
-              <span className="flex items-center gap-2.5">
-                {isStrategyActive && (
-                  <span className="h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                )}
-                <span className={!isStrategyActive ? "pl-4" : ""}>Strategies</span>
-              </span>
-              <svg
+          {/* Strategies tab with Sheet */}
+          <Sheet open={strategiesOpen} onOpenChange={setStrategiesOpen}>
+            <SheetTrigger asChild>
+              <button
                 className={cn(
-                  "h-3 w-3 transition-transform duration-200",
-                  strategiesOpen && "rotate-180"
+                  "relative flex flex-col items-center gap-0.5 py-2 transition-colors duration-200",
+                  isStrategyActive
+                    ? "text-primary"
+                    : "text-zinc-500 active:text-zinc-300"
                 )}
-                viewBox="0 0 12 12"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
               >
-                <path d="M3 5l3 3 3-3" />
-              </svg>
-            </button>
-
-            {strategiesOpen && (
-              <div className="ml-4 space-y-1 border-l border-zinc-800/40 pl-3">
-                {STRATEGY_LINKS.map(({ href, label }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    className={cn(
-                      "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                      pathname === href
-                        ? "bg-primary/[0.08] text-primary"
-                        : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
-                    )}
-                  >
-                    {pathname === href && (
-                      <span className="h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                    )}
-                    <span className={pathname !== href ? "pl-4" : ""}>{label}</span>
-                  </Link>
-                ))}
+                <Layers className={cn("h-5 w-5", isStrategyActive && "drop-shadow-[0_0_6px_hsl(var(--primary)/0.5)]")} strokeWidth={isStrategyActive ? 2.2 : 1.5} />
+                <span className="text-[10px] font-medium leading-none">Strategies</span>
+                {isStrategyActive && (
+                  <span className="absolute top-0 h-0.5 w-8 rounded-b-full bg-primary" />
+                )}
+              </button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="rounded-t-2xl border-t border-zinc-800/60 bg-zinc-950/95 backdrop-blur-2xl px-0 pb-8">
+              <SheetHeader className="px-6 pb-2">
+                <SheetTitle className="text-base font-semibold text-zinc-100">Strategies</SheetTitle>
+              </SheetHeader>
+              <div className="space-y-1 px-4">
+                {STRATEGY_LINKS.map(({ href, label }) => {
+                  const active = pathname === href;
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      className={cn(
+                        "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors",
+                        active
+                          ? "bg-primary/[0.08] text-primary"
+                          : "text-zinc-400 active:bg-zinc-800/50 active:text-zinc-200"
+                      )}
+                    >
+                      {active && (
+                        <span className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
+                      )}
+                      <span className={!active ? "pl-5" : ""}>{label}</span>
+                    </Link>
+                  );
+                })}
               </div>
-            )}
-          </div>
+            </SheetContent>
+          </Sheet>
         </div>
-      )}
+      </nav>
     </div>
   );
 }
@@ -259,6 +243,7 @@ export function Navbar() {
   const time = useLiveClock();
 
   return (
+    <>
     <nav className="sticky top-0 z-50 border-b border-zinc-800/40 bg-zinc-950/70 backdrop-blur-2xl">
       <div className="mx-auto flex h-12 md:h-14 max-w-7xl items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-3 md:gap-4">
@@ -272,7 +257,7 @@ export function Navbar() {
             </span>
           </Link>
 
-          <div className="h-4 w-px bg-zinc-800/60" />
+          <div className="hidden md:block h-4 w-px bg-zinc-800/60" />
 
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-1">
@@ -296,8 +281,7 @@ export function Navbar() {
             <StrategiesDropdown />
           </div>
 
-          {/* Mobile hamburger */}
-          <MobileMenu />
+          {/* Mobile: show brand only, bottom nav handles navigation */}
         </div>
 
         <div className="hidden md:flex items-center gap-3">
@@ -312,5 +296,7 @@ export function Navbar() {
         </div>
       </div>
     </nav>
+    <MobileBottomNav />
+    </>
   );
 }

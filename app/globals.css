@@ -82,3 +82,15 @@ body::after {
 .focus-ring {
   @apply outline-none ring-2 ring-primary/30 ring-offset-2 ring-offset-zinc-950;
 }
+
+/* Safe area for bottom tab bar on mobile */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Add bottom padding on mobile so content isn't hidden behind tab bar */
+@media (max-width: 767px) {
+  main {
+    padding-bottom: 4.5rem;
+  }
+}
