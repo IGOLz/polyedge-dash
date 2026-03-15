@@ -180,6 +180,11 @@ const STRATEGY_COLORS: Record<string, { badge: string; border: string; glow: str
     border: "border-teal-500/20",
     glow: "via-teal-500/40",
   },
+  late_dip_recovery: {
+    badge: "bg-rose-500/10 text-rose-400 border-rose-500/20",
+    border: "border-rose-500/20",
+    glow: "via-rose-500/40",
+  },
 };
 
 function getStrategyStyle(name: string) {
