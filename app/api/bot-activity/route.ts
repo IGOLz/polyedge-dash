@@ -5,6 +5,7 @@ import { query } from "@/lib/db";
 
 type BotTrade = {
   id: string;
+  market_id: string | null;
   market_type: string;
   strategy_name: string;
   direction: string;
@@ -15,7 +16,12 @@ type BotTrade = {
   pnl: string | null;
   placed_at: string;
   resolved_at: string | null;
-  data: string | null;
+  confidence_multiplier: string | null;
+  shares: string | null;
+  stop_loss_price: string | null;
+  stop_loss_triggered: boolean | null;
+  stop_loss_order_id: string | null;
+  notes: string | null;
 };
 
 type BotLog = {
@@ -28,13 +34,27 @@ type BotLog = {
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
-  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "50", 10)));
   const type = searchParams.get("type") || "all";
-  const offset = (page - 1) * limit;
+
+  // Support both legacy page-based and new offset-based pagination
+  const limit = Math.min(200, Math.max(1, parseInt(searchParams.get("limit") || "50", 10)));
+  const offsetParam = searchParams.get("offset");
+  const pageParam = searchParams.get("page");
+  let offset: number;
+  if (offsetParam != null) {
+    offset = Math.max(0, parseInt(offsetParam, 10));
+  } else {
+    const page = Math.max(1, parseInt(pageParam || "1", 10));
+    offset = (page - 1) * limit;
+  }
 
   try {
-    let tradesQuery = `SELECT * FROM bot_trades`;
+    let tradesQuery = `SELECT
+      id, market_id, market_type, strategy_name, direction,
+      entry_price, bet_size_usd, status, final_outcome, pnl,
+      placed_at, resolved_at, confidence_multiplier,
+      shares, stop_loss_price, stop_loss_triggered, stop_loss_order_id, notes
+    FROM bot_trades`;
     const tradeParams: (string | number)[] = [];
     let paramIdx = 1;
 

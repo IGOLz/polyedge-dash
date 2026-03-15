@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   XAxis,
@@ -75,21 +75,29 @@ interface OverviewData {
   } | null;
 }
 
+interface TradeRow {
+  id: string;
+  market_id: string | null;
+  market_type: string;
+  strategy_name: string;
+  direction: string;
+  entry_price: string;
+  bet_size_usd: string;
+  status: string;
+  final_outcome: string | null;
+  pnl: string | null;
+  placed_at: string;
+  resolved_at: string | null;
+  confidence_multiplier: string | null;
+  shares: string | null;
+  stop_loss_price: string | null;
+  stop_loss_triggered: boolean | null;
+  stop_loss_order_id: string | null;
+  notes: string | null;
+}
+
 interface ActivityData {
-  trades: {
-    id: string;
-    market_type: string;
-    strategy_name: string;
-    direction: string;
-    entry_price: string;
-    bet_size_usd: string;
-    status: string;
-    final_outcome: string | null;
-    pnl: string | null;
-    placed_at: string;
-    resolved_at: string | null;
-    data: string | null;
-  }[];
+  trades: TradeRow[];
   logs: {
     id: string;
     log_type: string;
@@ -832,155 +840,289 @@ function ActivityFeed({ logs }: { logs: ActivityData["logs"] }) {
 }
 
 // ---------------------------------------------------------------------------
-// Section 6 — Trade History Table (GlassPanel, fixed-height scroll)
+// Section 6 — Trade History Table (GlassPanel, infinite scroll)
 // ---------------------------------------------------------------------------
 
 const TRADE_FILTERS = [
   { value: "all", label: "All" },
   { value: "wins", label: "Wins" },
   { value: "losses", label: "Losses" },
+  { value: "stop_loss", label: "Stop Loss" },
   { value: "live", label: "Live" },
 ];
 
-const TRADE_PAGE_SIZE = 50;
-const TRADE_MAX = 1000;
+const TRADE_BATCH = 100;
 
-function TradeHistory({ trades }: { trades: ActivityData["trades"] }) {
+function extractSignalData(trade: TradeRow): { momentum: number | null; entryPrice: number | null; confidenceMultiplier: number | null; pricePenalty: boolean | null } {
+  const parsed = parseJsonSafe(trade.notes);
+  if (!parsed) return { momentum: null, entryPrice: null, confidenceMultiplier: null, pricePenalty: null };
+
+  const momentum = parsed.momentum_value != null ? parseFloat(String(parsed.momentum_value)) : null;
+  const entryPrice = parsed.entry_price != null ? parseFloat(String(parsed.entry_price)) : null;
+  const confidenceMultiplier = parsed.confidence_multiplier != null ? parseFloat(String(parsed.confidence_multiplier)) : null;
+  const pricePenalty = parsed.price_penalty_applied != null ? Boolean(parsed.price_penalty_applied) : null;
+
+  return {
+    momentum: momentum != null && !isNaN(momentum) ? momentum : null,
+    entryPrice: entryPrice != null && !isNaN(entryPrice) ? entryPrice : null,
+    confidenceMultiplier: confidenceMultiplier != null && !isNaN(confidenceMultiplier) ? confidenceMultiplier : null,
+    pricePenalty,
+  };
+}
+
+function MomentumTooltip({ trade }: { trade: TradeRow }) {
+  const sig = extractSignalData(trade);
+  if (sig.momentum == null) return null;
+
+  return (
+    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 hidden group-hover:block pointer-events-none">
+      <div className="rounded-lg border border-zinc-700/60 bg-zinc-900/95 px-3 py-2 shadow-xl backdrop-blur-sm whitespace-nowrap">
+        <p className="text-xs font-medium text-zinc-300 mb-1">Signal Data</p>
+        {sig.entryPrice != null && (
+          <p className="text-xs text-zinc-400">Entry: <span className="text-zinc-200 font-mono">{fmtPrice(sig.entryPrice)}</span></p>
+        )}
+        <p className="text-xs text-zinc-400">Momentum: <span className={cn("font-mono", sig.momentum >= 0 ? "text-emerald-400" : "text-red-400")}>{sig.momentum >= 0 ? "+" : ""}{sig.momentum.toFixed(4)}</span></p>
+        {sig.confidenceMultiplier != null && (
+          <p className="text-xs text-zinc-400">Multiplier: <span className="text-zinc-200 font-mono">{sig.confidenceMultiplier.toFixed(1)}x</span></p>
+        )}
+        {sig.pricePenalty != null && (
+          <p className="text-xs text-zinc-400">Price Penalty: <span className="text-zinc-200">{sig.pricePenalty ? "Yes" : "No"}</span></p>
+        )}
+      </div>
+      <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-zinc-700/60" />
+    </div>
+  );
+}
+
+function buildMarketUrl(t: TradeRow): string {
+  if (!t.market_id) return "";
+  return `/markets?type=${encodeURIComponent(t.market_type)}&market_id=${encodeURIComponent(t.market_id)}`;
+}
+
+function TradeHistory({ initialTrades }: { initialTrades: TradeRow[] }) {
+  const router = useRouter();
   const [filter, setFilter] = useState("all");
-  const [visibleCount, setVisibleCount] = useState(TRADE_PAGE_SIZE);
+  const [allTrades, setAllTrades] = useState<TradeRow[]>(initialTrades);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const offsetRef = useRef(initialTrades.length);
 
-  // Only show filled trades (won, lost, live) — exclude skipped and no-fill
-  const filledTrades = useMemo(() => trades.filter((t) => t.status === "filled"), [trades]);
+  // Sync when parent refreshes initial data
+  useEffect(() => {
+    setAllTrades(initialTrades);
+    offsetRef.current = initialTrades.length;
+    setHasMore(true);
+  }, [initialTrades]);
 
+  // Only show filled trades — exclude skipped and no-fill
+  const filledTrades = useMemo(() => allTrades.filter((t) => t.status === "filled"), [allTrades]);
+
+  // Client-side filtering — no re-fetch
   const filtered = useMemo(() => {
     if (filter === "wins") return filledTrades.filter((t) => t.final_outcome === "win");
     if (filter === "losses") return filledTrades.filter((t) => t.final_outcome === "loss");
+    if (filter === "stop_loss") return filledTrades.filter((t) => t.final_outcome === "stop_loss");
     if (filter === "live") return filledTrades.filter((t) => !t.final_outcome);
     return filledTrades;
   }, [filledTrades, filter]);
 
-  const visible = filtered.slice(0, visibleCount);
-  const hasMore = visibleCount < filtered.length && visibleCount < TRADE_MAX;
-
-  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    const el = e.currentTarget;
-    if (el.scrollHeight - el.scrollTop - el.clientHeight < 80 && hasMore) {
-      setVisibleCount((c) => Math.min(c + TRADE_PAGE_SIZE, TRADE_MAX));
+  // Fetch next batch
+  const fetchMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const res = await fetch(`/api/bot-activity?type=trades&limit=${TRADE_BATCH}&offset=${offsetRef.current}`);
+      const data = await res.json();
+      const newTrades: TradeRow[] = data.trades ?? [];
+      if (newTrades.length < TRADE_BATCH) setHasMore(false);
+      if (newTrades.length > 0) {
+        setAllTrades((prev) => {
+          const existingIds = new Set(prev.map((t) => t.id));
+          const deduped = newTrades.filter((t) => !existingIds.has(t.id));
+          return [...prev, ...deduped];
+        });
+        offsetRef.current += newTrades.length;
+      }
+    } catch {
+      // silently fail, user can scroll again
+    } finally {
+      setLoadingMore(false);
     }
-  }, [hasMore]);
+  }, [loadingMore, hasMore]);
+
+  // IntersectionObserver on sentinel
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) fetchMore();
+      },
+      { root: scrollRef.current, rootMargin: "200px" }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [fetchMore]);
+
+  const COL_SPAN = 11;
 
   return (
     <section className="mb-8 md:mb-14">
       <SectionHeader title="Trade History" description="All trades placed by the bot, most recent first." />
       <GlassPanel variant="glow-wide">
         <div className="relative border-b border-zinc-800/60 px-6 py-3">
-          <FilterRow options={TRADE_FILTERS} selected={filter} onSelect={(v) => { setFilter(v); setVisibleCount(TRADE_PAGE_SIZE); }} />
+          <FilterRow options={TRADE_FILTERS} selected={filter} onSelect={setFilter} />
         </div>
-        {/* Sticky header + scrollable body */}
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="sticky top-0 z-10 bg-zinc-950">
-              <tr className="border-b border-zinc-800/40">
-                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Time</th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Market</th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Strategy</th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Dir</th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Entry</th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Size</th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Status</th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Outcome</th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">PnL</th>
-              </tr>
-            </thead>
-          </table>
-        </div>
-        <div
-          className="h-[520px] overflow-y-auto overflow-x-auto scrollbar-thin"
-          onScroll={handleScroll}
-        >
-          <table className="w-full">
-            <tbody>
-              {visible.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="py-12 text-center text-sm text-zinc-500">
-                    No trades to show.
-                  </td>
+          <div className="min-w-[900px]">
+            {/* Fixed header */}
+            <table className="w-full table-fixed">
+              <thead className="bg-zinc-950">
+                <tr className="border-b border-zinc-800/40">
+                  <th className="w-32 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Time</th>
+                  <th className="w-24 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Market</th>
+                  <th className="w-36 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Strategy</th>
+                  <th className="w-20 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Dir</th>
+                  <th className="w-20 px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500">Entry</th>
+                  <th className="w-20 px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500">Size</th>
+                  <th className="w-24 px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-zinc-500">Status</th>
+                  <th className="w-24 px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-zinc-500">Outcome</th>
+                  <th className="w-24 px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500">PnL</th>
+                  <th className="w-24 px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500">Momentum</th>
+                  <th className="w-20 px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-zinc-500">Mult</th>
                 </tr>
-              ) : (
-                visible.map((t) => {
-                  const tPnl = pf(t.pnl);
-                  const style = getStrategyStyle(t.strategy_name);
-                  return (
-                    <tr key={t.id} className="border-b border-zinc-800/20 hover:bg-zinc-800/20 transition-colors">
-                      <td className="px-4 py-3 text-sm tabular-nums text-zinc-400">{fmtDateTime(t.placed_at)}</td>
-                      <td className="px-4 py-3 text-sm text-zinc-300">{fmtMarket(t.market_type)}</td>
-                      <td className="px-4 py-3">
-                        <span className={cn("rounded-md px-1.5 py-0.5 text-xs font-medium border", style.badge)}>
-                          {t.strategy_name}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        {t.direction === "up" ? (
-                          <span className="flex items-center gap-1 text-sm text-emerald-400">
-                            <ArrowUpRight size={12} /> Up
+              </thead>
+            </table>
+            {/* Scrollable body */}
+            <div ref={scrollRef} className="h-[520px] overflow-y-auto scrollbar-thin">
+            <table className="w-full table-fixed">
+              <tbody>
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={COL_SPAN} className="py-12 text-center text-sm text-zinc-500">
+                      No trades to show.
+                    </td>
+                  </tr>
+                ) : (
+                  filtered.map((t, idx) => {
+                    // PnL: use DB value, fallback to client-side calc for stop_loss
+                    let tPnl = pf(t.pnl);
+                    if ((!t.pnl || tPnl === 0) && t.final_outcome === "stop_loss" && t.stop_loss_price && t.shares) {
+                      tPnl = (parseFloat(t.stop_loss_price) - parseFloat(t.entry_price)) * parseFloat(t.shares);
+                    }
+                    const hasPnl = t.final_outcome != null && (t.pnl != null || t.final_outcome === "stop_loss");
+                    const style = getStrategyStyle(t.strategy_name);
+                    const sig = extractSignalData(t);
+                    const cm = t.confidence_multiplier != null ? parseFloat(t.confidence_multiplier) : (sig.confidenceMultiplier ?? null);
+
+                    const marketUrl = buildMarketUrl(t);
+
+                    return (
+                      <tr
+                        key={t.id}
+                        onClick={marketUrl ? () => router.push(marketUrl) : undefined}
+                        className={cn(
+                          "border-b border-zinc-800/20 hover:bg-zinc-800/20 transition-colors",
+                          idx % 2 === 1 && "bg-zinc-900/30",
+                          marketUrl && "cursor-pointer"
+                        )}
+                      >
+                        <td className="w-32 px-3 py-3 text-sm tabular-nums text-zinc-400 truncate">{fmtDateTime(t.placed_at)}</td>
+                        <td className="w-24 px-3 py-3 text-sm text-zinc-300 truncate">{fmtMarket(t.market_type)}</td>
+                        <td className="w-36 px-3 py-3">
+                          <span className={cn("rounded-md px-1.5 py-0.5 text-xs font-medium border truncate inline-block max-w-full", style.badge)}>
+                            {t.strategy_name}
                           </span>
-                        ) : (
-                          <span className="flex items-center gap-1 text-sm text-red-400">
-                            <ArrowDownRight size={12} /> Down
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-sm tabular-nums text-zinc-200">
-                        {fmtPrice(pf(t.entry_price))}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-sm tabular-nums text-zinc-200">
-                        {fmtDollar(pf(t.bet_size_usd))}
-                      </td>
-                      <td className="px-4 py-3">
-                        {t.status === "filled" ? (
-                          <Badge variant="up">Filled</Badge>
-                        ) : t.status === "fok_no_fill" ? (
-                          <Badge variant="default">No Fill</Badge>
-                        ) : t.status.startsWith("skipped") ? (
-                          <Badge variant="default">Skipped</Badge>
-                        ) : t.status === "dry_run" ? (
-                          <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">Dry Run</span>
-                        ) : (
-                          <Badge variant="default">{t.status}</Badge>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        {t.status !== "filled" ? null : !t.final_outcome ? (
-                          <span className="text-xs font-medium text-yellow-400">Pending...</span>
-                        ) : t.final_outcome === "win" ? (
-                          <span className="text-xs font-medium text-emerald-400">Win ✓</span>
-                        ) : (
-                          <span className="text-xs font-medium text-red-400">Loss ✗</span>
-                        )}
-                      </td>
-                      <td className={cn("px-4 py-3 font-mono text-sm font-bold tabular-nums", !t.pnl || t.final_outcome == null ? "text-zinc-600" : pnlColor(tPnl))}>
-                        {t.pnl && t.final_outcome != null ? fmtPnl(tPnl) : ""}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-              {hasMore && (
-                <tr>
-                  <td colSpan={9} className="py-3 text-center">
-                    <span className="text-xs text-zinc-600">Scroll for more...</span>
-                  </td>
-                </tr>
-              )}
-              {visibleCount >= TRADE_MAX && filtered.length > TRADE_MAX && (
-                <tr>
-                  <td colSpan={9} className="py-3 text-center">
-                    <span className="text-xs text-zinc-500">Showing max {TRADE_MAX} trades</span>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                        </td>
+                        <td className="w-20 px-3 py-3">
+                          {t.direction === "up" ? (
+                            <span className="flex items-center gap-1 text-sm text-emerald-400">
+                              <ArrowUpRight size={12} /> Up
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1 text-sm text-red-400">
+                              <ArrowDownRight size={12} /> Down
+                            </span>
+                          )}
+                        </td>
+                        <td className="w-20 px-3 py-3 text-right font-mono text-sm tabular-nums text-zinc-200">
+                          {fmtPrice(pf(t.entry_price))}
+                        </td>
+                        <td className="w-20 px-3 py-3 text-right font-mono text-sm tabular-nums text-zinc-200">
+                          {fmtDollar(pf(t.bet_size_usd))}
+                        </td>
+                        <td className="w-24 px-3 py-3 text-center">
+                          {t.status === "filled" ? (
+                            <Badge variant="up">Filled</Badge>
+                          ) : t.status === "fok_no_fill" ? (
+                            <Badge variant="default">No Fill</Badge>
+                          ) : t.status.startsWith("skipped") ? (
+                            <Badge variant="default">Skipped</Badge>
+                          ) : t.status === "dry_run" ? (
+                            <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">Dry Run</span>
+                          ) : (
+                            <Badge variant="default">{t.status}</Badge>
+                          )}
+                        </td>
+                        <td className="w-24 px-3 py-3 text-center">
+                          {t.status !== "filled" ? null : !t.final_outcome ? (
+                            <span className="text-xs font-medium text-yellow-400">Pending...</span>
+                          ) : t.final_outcome === "win" ? (
+                            <span className="text-xs font-medium text-emerald-400">Win</span>
+                          ) : t.final_outcome === "stop_loss" ? (
+                            <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-orange-500/10 text-orange-400 border border-orange-500/20">Stop Loss</span>
+                          ) : (
+                            <span className="text-xs font-medium text-red-400">Loss</span>
+                          )}
+                        </td>
+                        <td className={cn("w-24 px-3 py-3 text-right font-mono text-sm font-bold tabular-nums", !hasPnl ? "text-zinc-600" : pnlColor(tPnl))}>
+                          {hasPnl ? fmtPnl(tPnl) : ""}
+                        </td>
+                        <td className="w-24 px-3 py-3 text-right">
+                          {sig.momentum != null ? (
+                            <span className="group relative inline-block">
+                              <span className={cn("font-mono text-sm tabular-nums", sig.momentum >= 0 ? "text-emerald-400" : "text-red-400")}>
+                                {sig.momentum >= 0 ? "+" : ""}{sig.momentum.toFixed(3)}
+                              </span>
+                              <MomentumTooltip trade={t} />
+                            </span>
+                          ) : (
+                            <span className="text-sm text-zinc-600">&mdash;</span>
+                          )}
+                        </td>
+                        <td className="w-20 px-3 py-3 text-center">
+                          {cm != null && !isNaN(cm) ? (
+                            <span className="inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium bg-zinc-800/60 text-zinc-400 border border-zinc-700/40">
+                              {cm.toFixed(1)}x
+                            </span>
+                          ) : (
+                            <span className="text-sm text-zinc-600">&mdash;</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+            {/* Sentinel for infinite scroll */}
+            <div ref={sentinelRef} className="h-1" />
+            {loadingMore && (
+              <div className="flex items-center justify-center py-4 gap-2">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-600 border-t-primary" />
+                <span className="text-xs text-zinc-500">Loading more trades...</span>
+              </div>
+            )}
+            {!hasMore && filtered.length > 0 && (
+              <div className="py-3 text-center">
+                <span className="text-xs text-zinc-600">All trades loaded</span>
+              </div>
+            )}
+            </div>
+          </div>
         </div>
       </GlassPanel>
     </section>
@@ -1069,7 +1211,7 @@ export function BotMonitor() {
     try {
       const [ovRes, actRes] = await Promise.all([
         fetch("/api/bot-overview"),
-        fetch("/api/bot-activity?page=1&limit=200&type=all"),
+        fetch("/api/bot-activity?type=all&limit=100&offset=0"),
       ]);
       const [ovData, actData] = await Promise.all([ovRes.json(), actRes.json()]);
       setOverview(ovData);
@@ -1161,7 +1303,7 @@ export function BotMonitor() {
           <HourlySummary data={overview.hourlySummary} />
           <PnlChart trades={activity.trades} />
           <ActivityFeed logs={activity.logs} />
-          <TradeHistory trades={activity.trades} />
+          <TradeHistory initialTrades={activity.trades} />
         </>
       )}
     </>

@@ -113,6 +113,7 @@ function MarketsContent() {
     initialType !== "all" ? initialType.split("_")[0] : "btc";
   const initialInterval =
     initialType !== "all" ? initialType.split("_")[1] : "5m";
+  const initialMarketId = searchParams.get("market_id") || null;
 
   const {
     loading,
@@ -133,7 +134,7 @@ function MarketsContent() {
     customDate,
     handleCustomDate,
     customDateCount,
-  } = useMarkets(initialAsset, initialInterval);
+  } = useMarkets(initialAsset, initialInterval, initialMarketId);
 
   // Build timeline dots
   const timelineDots = isAllAssets

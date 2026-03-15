@@ -27,19 +27,52 @@ export interface DateOption {
   count: number;
 }
 
-export function useMarkets(initialAsset: string, initialInterval: string) {
+export function useMarkets(initialAsset: string, initialInterval: string, initialMarketId?: string | null) {
   const [markets, setMarkets] = useState<Market[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(initialMarketId ?? null);
   const [assetFilter, setAssetFilter] = useState(initialAsset);
   const [intervalFilter, setIntervalFilter] = useState(initialInterval);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState("today");
   const [customDate, setCustomDate] = useState("");
+  const [didAutoSelect, setDidAutoSelect] = useState(false);
 
   useEffect(() => {
     fetch("/api/markets")
       .then((r) => r.json())
-      .then((data: Market[]) => setMarkets(data))
+      .then((data: Market[]) => {
+        setMarkets(data);
+        // Auto-select market from URL param
+        if (initialMarketId && !didAutoSelect) {
+          const target = data.find((m) => m.market_id === initialMarketId);
+          if (target) {
+            const targetDate = getUTCDateString(new Date(target.started_at));
+            const todayStr = getTargetDateString(0);
+            const yesterdayStr = getTargetDateString(1);
+            if (targetDate === todayStr) {
+              setSelectedDate("today");
+            } else if (targetDate === yesterdayStr) {
+              setSelectedDate("yesterday");
+            } else {
+              // Check days 2-6
+              let found = false;
+              for (let i = 2; i < 7; i++) {
+                if (targetDate === getTargetDateString(i)) {
+                  setSelectedDate(String(i));
+                  found = true;
+                  break;
+                }
+              }
+              if (!found) {
+                setSelectedDate("custom");
+                setCustomDate(targetDate);
+              }
+            }
+            setSelectedId(target.market_id);
+            setDidAutoSelect(true);
+          }
+        }
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -134,7 +167,7 @@ export function useMarkets(initialAsset: string, initialInterval: string) {
       );
   }, [isAllAssets, filteredMarkets]);
 
-  // Auto-select first item when filter/date changes
+  // Auto-select first item when filter/date changes (skip if URL-based selection is active)
   useEffect(() => {
     const items = isAllAssets ? timeGroups : filteredMarkets;
     const getId = isAllAssets

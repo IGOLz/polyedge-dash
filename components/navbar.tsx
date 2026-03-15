@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { useLiveClock } from "@/hooks/use-live-clock";
 import { DownloadButton } from "./download-button";
 import { cn } from "@/lib/utils";
@@ -12,6 +13,7 @@ import {
   FlaskConical,
   Bot,
   Layers,
+  Settings,
 } from "lucide-react";
 import {
   Sheet,
@@ -33,6 +35,7 @@ const STRATEGY_LINKS = [
   { href: "/strategy2", label: "Strategy 2 — Calibration" },
   { href: "/strategy3", label: "Strategy 3 — Momentum" },
   { href: "/strategy4", label: "Strategy 4 — Streak Reversal" },
+  { href: "/momentum-analytics", label: "Momentum Tier Analytics" },
 ];
 
 // ---------------------------------------------------------------------------
@@ -147,6 +150,7 @@ const TAB_ITEMS = [
 
 function MobileBottomNav() {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const [strategiesOpen, setStrategiesOpen] = useState(false);
   const isStrategyActive = STRATEGY_LINKS.some((s) => pathname === s.href);
 
@@ -159,7 +163,7 @@ function MobileBottomNav() {
     <div className="fixed bottom-0 inset-x-0 z-50 md:hidden">
       {/* Frosted glass bar */}
       <nav className="border-t border-zinc-800/60 bg-zinc-950/90 backdrop-blur-2xl safe-bottom">
-        <div className="grid grid-cols-5 items-center">
+        <div className={cn("grid items-center", session ? "grid-cols-6" : "grid-cols-5")}>
           {TAB_ITEMS.map(({ href, label, icon: Icon }) => {
             const active = pathname === href;
             return (
@@ -228,6 +232,25 @@ function MobileBottomNav() {
               </div>
             </SheetContent>
           </Sheet>
+
+          {/* Control tab — only when logged in */}
+          {session && (
+            <Link
+              href="/control"
+              className={cn(
+                "relative flex flex-col items-center gap-0.5 py-2 transition-colors duration-200",
+                pathname === "/control"
+                  ? "text-primary"
+                  : "text-zinc-500 active:text-zinc-300"
+              )}
+            >
+              <Settings className={cn("h-5 w-5", pathname === "/control" && "drop-shadow-[0_0_6px_hsl(var(--primary)/0.5)]")} strokeWidth={pathname === "/control" ? 2.2 : 1.5} />
+              <span className="text-[10px] font-medium leading-none">Control</span>
+              {pathname === "/control" && (
+                <span className="absolute top-0 h-0.5 w-8 rounded-b-full bg-primary" />
+              )}
+            </Link>
+          )}
         </div>
       </nav>
     </div>
@@ -241,6 +264,7 @@ function MobileBottomNav() {
 export function Navbar() {
   const pathname = usePathname();
   const time = useLiveClock();
+  const { data: session } = useSession();
 
   return (
     <>
@@ -279,6 +303,22 @@ export function Navbar() {
               </Link>
             ))}
             <StrategiesDropdown />
+            {session && (
+              <Link
+                href="/control"
+                className={cn(
+                  "relative px-2.5 md:px-3 py-3 md:py-4 text-sm font-medium transition-colors duration-200",
+                  pathname === "/control"
+                    ? "text-primary"
+                    : "text-zinc-500 hover:text-zinc-200"
+                )}
+              >
+                Control
+                {pathname === "/control" && (
+                  <span className="absolute inset-x-1 bottom-0 h-0.5 rounded-full bg-primary" />
+                )}
+              </Link>
+            )}
           </div>
 
           {/* Mobile: show brand only, bottom nav handles navigation */}
