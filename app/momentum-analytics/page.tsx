@@ -223,8 +223,10 @@ export default function MomentumAnalyticsPage() {
   const [tierStatus, setTierStatus] = useState<TierStatus>({ broad: false, filtered: false, aggressive: false });
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState<TimeRange>("7d");
-  const [tablePage, setTablePage] = useState(1);
   const [tableFilter, setTableFilter] = useState<Tier | "all">("all");
+  const [visibleCount, setVisibleCount] = useState(ROWS_PER_PAGE);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const [countdown, setCountdown] = useState(60);
   const countdownRef = useRef(60);
 
@@ -257,9 +259,10 @@ export default function MomentumAnalyticsPage() {
     return () => clearInterval(tick);
   }, [fetchData]);
 
-  // Reset table page when range or filter changes
+  // Reset visible count when range or filter changes
   useEffect(() => {
-    setTablePage(1);
+    setVisibleCount(ROWS_PER_PAGE);
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, [range, tableFilter]);
 
   // Group trades by tier
@@ -395,8 +398,23 @@ export default function MomentumAnalyticsPage() {
     return trades.filter((t) => getTier(t.strategy_name, t.notes) === tableFilter);
   }, [trades, tableFilter]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredTrades.length / ROWS_PER_PAGE));
-  const paginatedTrades = filteredTrades.slice((tablePage - 1) * ROWS_PER_PAGE, tablePage * ROWS_PER_PAGE);
+  const visibleTrades = filteredTrades.slice(0, visibleCount);
+
+  // IntersectionObserver for infinite scroll
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((prev) => Math.min(prev + ROWS_PER_PAGE, filteredTrades.length));
+        }
+      },
+      { root: scrollRef.current, rootMargin: "200px" }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [filteredTrades.length]);
 
   // ---------------------------------------------------------------------------
   // Render
@@ -642,91 +660,124 @@ export default function MomentumAnalyticsPage() {
                     {t === "all" ? "All Tiers" : TIER_LABELS[t]}
                   </button>
                 ))}
-                <span className="ml-auto text-xs text-muted-foreground">
-                  {filteredTrades.length} trades
-                </span>
-              </div>
-
-              {/* Table */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead>
-                    <tr className="border-b border-zinc-800/60">
-                      {["Time", "Tier", "Market", "Direction", "Entry Price", "Bet Size", "Outcome", "PnL", "Momentum", "Entry At (s)"].map((h) => (
-                        <th key={h} className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedTrades.length === 0 ? (
-                      <tr>
-                        <td colSpan={10} className="px-3 py-8 text-center text-sm text-muted-foreground">
-                          No trades found
-                        </td>
-                      </tr>
-                    ) : (
-                      paginatedTrades.map((trade) => {
-                        const tier = getTier(trade.strategy_name, trade.notes);
-                        const signal = parseSignalData(trade.notes);
-                        const momentumValue = signal?.momentum_value != null ? Number(signal.momentum_value).toFixed(4) : "—";
-                        const secondsElapsed = signal?.seconds_elapsed != null ? String(signal.seconds_elapsed) : "—";
-                        const tradePnl = pf(trade.pnl);
-                        return (
-                          <tr key={trade.id} className="border-b border-zinc-800/30 hover:bg-zinc-900/50 transition-colors">
-                            <td className="px-3 py-2 text-sm text-zinc-300 whitespace-nowrap">{fmtDateTime(trade.placed_at)}</td>
-                            <td className="px-3 py-2">
-                              <span
-                                className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium border ${TIER_BADGE_CLASSES[tier]}`}
-                              >
-                                {TIER_LABELS[tier]}
-                              </span>
-                            </td>
-                            <td className="px-3 py-2 text-sm text-zinc-300">{trade.market_type || "—"}</td>
-                            <td className="px-3 py-2 text-sm text-zinc-300">{trade.direction}</td>
-                            <td className="px-3 py-2 text-sm text-zinc-300">{fmtPrice(pf(trade.entry_price))}</td>
-                            <td className="px-3 py-2 text-sm text-zinc-300">${pf(trade.bet_size_usd).toFixed(2)}</td>
-                            <td className="px-3 py-2">
-                              <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${outcomeBadge(trade)}`}>
-                                {outcomeLabel(trade)}
-                              </span>
-                            </td>
-                            <td className={`px-3 py-2 text-sm font-medium ${pnlColor(tradePnl)}`}>
-                              {trade.pnl != null ? fmtPnl(tradePnl) : "—"}
-                            </td>
-                            <td className="px-3 py-2 text-sm text-zinc-300">{momentumValue}</td>
-                            <td className="px-3 py-2 text-sm text-zinc-300">{secondsElapsed}</td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-4 pt-3 border-t border-zinc-800/60">
-                  <button
-                    onClick={() => setTablePage((p) => Math.max(1, p - 1))}
-                    disabled={tablePage === 1}
-                    className="rounded-lg bg-zinc-800/50 px-3 py-1.5 text-xs font-medium text-zinc-300 transition-colors hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    Previous
-                  </button>
+                <div className="ml-auto flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">
-                    Page {tablePage} of {totalPages}
+                    {filteredTrades.length} trades
                   </span>
                   <button
-                    onClick={() => setTablePage((p) => Math.min(totalPages, p + 1))}
-                    disabled={tablePage === totalPages}
-                    className="rounded-lg bg-zinc-800/50 px-3 py-1.5 text-xs font-medium text-zinc-300 transition-colors hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                    onClick={() => {
+                      const rows = filteredTrades.map((t) => {
+                        const tier = getTier(t.strategy_name, t.notes);
+                        const parsed = parseSignalData(t.notes);
+                        return {
+                          time: t.placed_at,
+                          tier,
+                          market: t.market_type,
+                          direction: t.direction,
+                          entry_price: t.entry_price,
+                          bet_size: t.bet_size_usd,
+                          outcome: outcomeLabel(t),
+                          pnl: t.pnl ?? "",
+                          momentum_value: parsed?.momentum_value ?? "",
+                          entry_seconds: parsed?.seconds_elapsed ?? "",
+                        };
+                      });
+                      const headers = Object.keys(rows[0] ?? {});
+                      const csv = [
+                        headers.join(","),
+                        ...rows.map((r) =>
+                          headers.map((h) => {
+                            const val = String((r as Record<string, unknown>)[h] ?? "");
+                            return val.includes(",") ? `"${val}"` : val;
+                          }).join(",")
+                        ),
+                      ].join("\n");
+                      const blob = new Blob([csv], { type: "text/csv" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `momentum-trades-${range}.csv`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    disabled={filteredTrades.length === 0}
+                    className="rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/20 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    Next
+                    Export CSV
                   </button>
                 </div>
-              )}
+              </div>
+
+              {/* Table — fixed header + scrollable body */}
+              <div className="overflow-x-auto">
+                <div className="min-w-[900px]">
+                  <table className="w-full table-fixed">
+                    <thead className="bg-zinc-950">
+                      <tr className="border-b border-zinc-800/40">
+                        <th className="w-32 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Time</th>
+                        <th className="w-20 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Tier</th>
+                        <th className="w-20 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Market</th>
+                        <th className="w-16 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Dir</th>
+                        <th className="w-20 px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500">Entry</th>
+                        <th className="w-20 px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500">Size</th>
+                        <th className="w-20 px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-zinc-500">Outcome</th>
+                        <th className="w-20 px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500">PnL</th>
+                        <th className="w-20 px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500">Momentum</th>
+                        <th className="w-20 px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500">Entry (s)</th>
+                      </tr>
+                    </thead>
+                  </table>
+                  <div ref={scrollRef} className="h-[520px] overflow-y-auto scrollbar-thin">
+                    <table className="w-full table-fixed">
+                      <tbody>
+                        {visibleTrades.length === 0 ? (
+                          <tr>
+                            <td colSpan={10} className="py-12 text-center text-sm text-zinc-500">
+                              No trades to show.
+                            </td>
+                          </tr>
+                        ) : (
+                          visibleTrades.map((trade, idx) => {
+                            const tier = getTier(trade.strategy_name, trade.notes);
+                            const signal = parseSignalData(trade.notes);
+                            const momentumValue = signal?.momentum_value != null ? Number(signal.momentum_value).toFixed(4) : "—";
+                            const secondsElapsed = signal?.seconds_elapsed != null ? String(signal.seconds_elapsed) : "—";
+                            const tradePnl = pf(trade.pnl);
+                            return (
+                              <tr
+                                key={trade.id}
+                                className={`border-b border-zinc-800/20 hover:bg-zinc-800/20 transition-colors ${idx % 2 === 1 ? "bg-zinc-900/30" : ""}`}
+                              >
+                                <td className="w-32 px-3 py-3 text-sm tabular-nums text-zinc-400 truncate">{fmtDateTime(trade.placed_at)}</td>
+                                <td className="w-20 px-3 py-3">
+                                  <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium border ${TIER_BADGE_CLASSES[tier]}`}>
+                                    {TIER_LABELS[tier]}
+                                  </span>
+                                </td>
+                                <td className="w-20 px-3 py-3 text-sm text-zinc-300 truncate">{trade.market_type || "—"}</td>
+                                <td className="w-16 px-3 py-3 text-sm text-zinc-300">{trade.direction}</td>
+                                <td className="w-20 px-3 py-3 text-right font-mono text-sm tabular-nums text-zinc-200">{fmtPrice(pf(trade.entry_price))}</td>
+                                <td className="w-20 px-3 py-3 text-right font-mono text-sm tabular-nums text-zinc-200">${pf(trade.bet_size_usd).toFixed(2)}</td>
+                                <td className="w-20 px-3 py-3 text-center">
+                                  <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${outcomeBadge(trade)}`}>
+                                    {outcomeLabel(trade)}
+                                  </span>
+                                </td>
+                                <td className={`w-20 px-3 py-3 text-right font-mono text-sm tabular-nums font-medium ${pnlColor(tradePnl)}`}>
+                                  {trade.pnl != null ? fmtPnl(tradePnl) : "—"}
+                                </td>
+                                <td className="w-20 px-3 py-3 text-right text-sm text-zinc-300">{momentumValue}</td>
+                                <td className="w-20 px-3 py-3 text-right text-sm text-zinc-300">{secondsElapsed}</td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                    <div ref={sentinelRef} className="h-1" />
+                  </div>
+                </div>
+              </div>
             </GlassPanel>
           </>
         )}
