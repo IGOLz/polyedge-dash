@@ -142,14 +142,14 @@ function pnlColor(val: number): string {
 }
 
 function outcomeLabel(trade: MomentumTrade): string {
-  if (trade.stop_loss_triggered) return "Stop-loss";
+  if (trade.stop_loss_triggered || trade.final_outcome === "stop_loss") return "Stop-loss";
   if (trade.final_outcome === "win") return "Win";
   if (trade.final_outcome === "loss") return "Loss";
   return "Pending";
 }
 
 function outcomeBadge(trade: MomentumTrade): string {
-  if (trade.stop_loss_triggered) return "bg-amber-500/10 text-amber-400";
+  if (trade.stop_loss_triggered || trade.final_outcome === "stop_loss") return "bg-amber-500/10 text-amber-400";
   if (trade.final_outcome === "win") return "bg-emerald-500/10 text-emerald-400";
   if (trade.final_outcome === "loss") return "bg-red-500/10 text-red-400";
   return "bg-zinc-500/10 text-zinc-400";
@@ -172,6 +172,17 @@ interface TierSummary {
   avgEntryPrice: number;
 }
 
+/** PnL with stop-loss fallback: if DB pnl is missing but stop-loss fired, calculate from prices × shares */
+function tradePnl(t: MomentumTrade): number {
+  let val = pf(t.pnl);
+  const isStopLoss = t.stop_loss_triggered || t.final_outcome === "stop_loss";
+  if ((!t.pnl || val === 0) && isStopLoss && t.stop_loss_price) {
+    val = (parseFloat(t.stop_loss_price) - parseFloat(t.entry_price)) * pf(t.bet_size_usd);
+  }
+
+  return val;
+}
+
 function computeTierSummary(trades: MomentumTrade[]): TierSummary {
   if (trades.length === 0) {
     return { totalTrades: 0, wins: 0, losses: 0, stopLosses: 0, totalPnl: 0, totalWagered: 0, winRate: 0, roi: 0, avgPnl: 0, avgEntryPrice: 0 };
@@ -179,7 +190,7 @@ function computeTierSummary(trades: MomentumTrade[]): TierSummary {
   const wins = trades.filter((t) => t.final_outcome === "win").length;
   const losses = trades.filter((t) => t.final_outcome === "loss").length;
   const stopLosses = trades.filter((t) => t.stop_loss_triggered).length;
-  const totalPnl = trades.reduce((s, t) => s + pf(t.pnl), 0);
+  const totalPnl = trades.reduce((s, t) => s + tradePnl(t), 0);
   const totalWagered = trades.reduce((s, t) => s + pf(t.entry_price) * pf(t.bet_size_usd), 0);
   const avgEntryPrice = trades.reduce((s, t) => s + pf(t.entry_price), 0) / trades.length;
   return {
@@ -677,7 +688,7 @@ export default function MomentumAnalyticsPage() {
                           entry_price: t.entry_price,
                           cost: (pf(t.entry_price) * pf(t.bet_size_usd)).toFixed(2),
                           outcome: outcomeLabel(t),
-                          pnl: t.pnl ?? "",
+                          pnl: tradePnl(t).toFixed(2),
                           momentum_value: parsed?.momentum_value ?? "",
                           entry_seconds: parsed?.seconds_elapsed ?? "",
                         };
@@ -742,7 +753,7 @@ export default function MomentumAnalyticsPage() {
                             const signal = parseSignalData(trade.notes);
                             const momentumValue = signal?.momentum_value != null ? Number(signal.momentum_value).toFixed(4) : "—";
                             const secondsElapsed = signal?.seconds_elapsed != null ? String(signal.seconds_elapsed) : "—";
-                            const tradePnl = pf(trade.pnl);
+                            const tPnl = tradePnl(trade);
                             return (
                               <tr
                                 key={trade.id}
@@ -763,8 +774,8 @@ export default function MomentumAnalyticsPage() {
                                     {outcomeLabel(trade)}
                                   </span>
                                 </td>
-                                <td className={`w-20 px-3 py-3 text-right font-mono text-sm tabular-nums font-medium ${pnlColor(tradePnl)}`}>
-                                  {trade.pnl != null ? fmtPnl(tradePnl) : "—"}
+                                <td className={`w-20 px-3 py-3 text-right font-mono text-sm tabular-nums font-medium ${pnlColor(tPnl)}`}>
+                                  {tPnl !== 0 || trade.pnl != null || trade.stop_loss_triggered || trade.final_outcome === "stop_loss" ? fmtPnl(tPnl) : "—"}
                                 </td>
                                 <td className="w-20 px-3 py-3 text-right text-sm text-zinc-300">{momentumValue}</td>
                                 <td className="w-20 px-3 py-3 text-right text-sm text-zinc-300">{secondsElapsed}</td>
