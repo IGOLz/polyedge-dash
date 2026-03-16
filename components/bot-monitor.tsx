@@ -61,18 +61,6 @@ interface OverviewData {
     losses_yesterday: string;
     pnl_yesterday: string | null;
   } | null;
-  strategies: {
-    strategy_name: string;
-    trades: string;
-    wins: string;
-    losses: string;
-    total_pnl: string | null;
-    avg_entry_price: string | null;
-  }[];
-  hourlySummary: {
-    data: string;
-    logged_at: string;
-  } | null;
 }
 
 interface TradeRow {
@@ -332,14 +320,12 @@ function OverviewCards({ overview }: { overview: OverviewData }) {
   const h = overview.last24h;
   const y = overview.yesterday;
 
+  const STARTING_BALANCE = 199.18;
   const totalPnl = pf(o?.total_pnl);
+  const currentBalance = STARTING_BALANCE + totalPnl;
   const wins = pf(o?.wins);
   const losses = pf(o?.losses);
   const winRate = wins + losses > 0 ? (wins / (wins + losses)) * 100 : 0;
-
-  // Balance from hourly summary
-  const parsed = parseJsonSafe(overview.hourlySummary?.data ?? null);
-  const balance = pf((parsed?.balance as string) || (parsed?.current_balance as string));
 
   // Today
   const pnl24h = pf(h?.pnl_24h);
@@ -356,8 +342,8 @@ function OverviewCards({ overview }: { overview: OverviewData }) {
   const topCards = [
     { label: "Total PnL", value: fmtPnl(totalPnl), color: pnlColor(totalPnl) },
     { label: "Win Rate", value: wins + losses > 0 ? fmtPercent(winRate) : "—", color: winRate > 55 ? "text-emerald-400" : winRate >= 45 ? "text-yellow-400" : wins + losses > 0 ? "text-red-400" : "text-zinc-50" },
-    { label: "Total Trades", value: o ? parseInt(o.total_trades).toLocaleString("en-US") : "0", color: "text-zinc-50" },
-    { label: "Balance", value: balance > 0 ? fmtDollar(balance) : "—", color: "text-zinc-50" },
+    { label: "Starting Balance", value: fmtDollar(STARTING_BALANCE), color: "text-zinc-50" },
+    { label: "Current Balance", value: fmtDollar(currentBalance), color: "text-zinc-50" },
   ];
 
   return (
@@ -445,246 +431,31 @@ function OverviewCards({ overview }: { overview: OverviewData }) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Section 2 — Strategy Cards (strategies-overview style)
-// ---------------------------------------------------------------------------
 
-function StrategyCards({ strategies }: { strategies: OverviewData["strategies"] }) {
-  if (!strategies || strategies.length === 0) {
-    return (
-      <section className="mb-8 md:mb-14">
-        <SectionHeader title="Strategy Breakdown" />
-        <div className="rounded-xl border border-zinc-800/60 bg-zinc-950 p-8 text-center">
-          <p className="text-sm text-muted-foreground">No strategy data yet.</p>
-        </div>
-      </section>
-    );
-  }
-
-  return (
-    <section className="mb-8 md:mb-14">
-      <SectionHeader title="Strategy Breakdown" description="Performance of each active trading strategy." />
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {strategies.map((s, i) => {
-          const pnl = pf(s.total_pnl);
-          const w = parseInt(s.wins);
-          const l = parseInt(s.losses);
-          const wr = w + l > 0 ? (w / (w + l)) * 100 : 0;
-          const trades = parseInt(s.trades);
-          const totalBet = pf(s.avg_entry_price) * trades;
-          const roi = totalBet > 0 ? (pnl / totalBet) * 100 : 0;
-          const isPositive = pnl > 0;
-          const isNegative = pnl < 0;
-          const style = getStrategyStyle(s.strategy_name);
-
-          const borderColor = isPositive
-            ? "border-green-500/20"
-            : isNegative
-              ? "border-red-500/20"
-              : style.border;
-
-          const glowColor = isPositive
-            ? "via-green-500/40"
-            : isNegative
-              ? "via-red-500/40"
-              : style.glow;
-
-          return (
-            <div
-              key={s.strategy_name}
-              className={`group relative overflow-hidden rounded-xl border ${borderColor} bg-zinc-950 p-5 md:p-8 transition-all duration-300 animate-slide-up`}
-              style={{ animationDelay: `${i * 60}ms` }}
-            >
-              <div className={`absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent ${glowColor} to-transparent`} />
-              <div className="absolute -bottom-10 -right-10 h-28 w-28 rounded-full bg-primary/[0.05] blur-3xl pointer-events-none" />
-              <div className="absolute inset-0 bg-gradient-to-t from-primary/[0.02] to-transparent pointer-events-none" />
-
-              {/* Header */}
-              <div className="relative flex items-center justify-between">
-                <span className={cn("rounded-md px-2 py-1 text-xs font-medium border", style.badge)}>
-                  {s.strategy_name}
-                </span>
-                <span className={cn("font-mono text-sm font-semibold tabular-nums", wr > 55 ? "text-emerald-400" : wr >= 45 ? "text-yellow-400" : w + l > 0 ? "text-red-400" : "text-zinc-200")}>
-                  {w + l > 0 ? fmtPercent(wr) : "—"} win rate
-                </span>
-              </div>
-
-              {/* Main metric */}
-              <div className="relative mt-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary/60 mb-1">Total PnL</p>
-                <p className={cn("font-mono text-3xl font-bold tabular-nums", pnlColor(pnl))}>
-                  {fmtPnl(pnl)}
-                </p>
-              </div>
-
-              {/* Stats grid */}
-              <div className="relative mt-5 pt-5 border-t border-zinc-800/60 grid grid-cols-4 gap-4">
-                <div>
-                  <p className="text-xs uppercase tracking-wider text-zinc-400">Wins</p>
-                  <p className="mt-1 font-mono text-lg font-semibold tabular-nums text-emerald-400">
-                    {w}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wider text-zinc-400">Losses</p>
-                  <p className="mt-1 font-mono text-lg font-semibold tabular-nums text-red-400">
-                    {l}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wider text-zinc-400">Trades</p>
-                  <p className="mt-1 font-mono text-lg font-semibold tabular-nums text-zinc-200">
-                    {trades}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wider text-zinc-400">Avg Entry</p>
-                  <p className="mt-1 font-mono text-lg font-semibold tabular-nums text-zinc-200">
-                    {fmtPrice(pf(s.avg_entry_price))}
-                  </p>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Section 3 — Hourly Summary (GlassPanel with stat cards)
-// ---------------------------------------------------------------------------
-
-function HourlySummary({ data }: { data: OverviewData["hourlySummary"] }) {
-  if (!data) {
-    return (
-      <section className="mb-8 md:mb-14">
-        <SectionHeader title="Last Hourly Report" />
-        <GlassPanel variant="glow-tl">
-          <div className="relative p-6">
-            <p className="text-sm text-muted-foreground">
-              First hourly report will appear after 1 hour of operation.
-            </p>
-          </div>
-        </GlassPanel>
-      </section>
-    );
-  }
-
-  const parsed = parseJsonSafe(data.data);
-  if (!parsed) {
-    return (
-      <section className="mb-8 md:mb-14">
-        <SectionHeader title="Last Hourly Report" />
-        <GlassPanel variant="glow-tl">
-          <div className="relative p-6">
-            <p className="text-sm text-muted-foreground">Unable to parse hourly summary data.</p>
-          </div>
-        </GlassPanel>
-      </section>
-    );
-  }
-
-  const reportTime = fmtDateTime(data.logged_at);
-  const period = String(parsed.period ?? "—");
-  const totalTrades = String(parsed.total_trades ?? parsed.trades ?? "—");
-  const winsVal = String(parsed.wins ?? "—");
-  const lossesVal = String(parsed.losses ?? "—");
-  const stopLosses = String(parsed.stop_losses ?? "—");
-  const periodPnl = pf(parsed.pnl as string);
-  const roiVal = pf(parsed.roi as string);
-  const balance = pf((parsed.balance as string) || (parsed.current_balance as string));
-  const dailySpent = pf((parsed.daily_spent as string) || (parsed.daily_spent_today as string));
-  const dailyLimit = pf(parsed.daily_limit as string);
-  const pendingRedemption = pf(parsed.pending_redemption as string);
-  const activeStrategies = (parsed.active_strategies as string[]) || [];
-  const spentPercent = dailyLimit > 0 ? Math.min(100, (dailySpent / dailyLimit) * 100) : 0;
-
-  const statCards = [
-    { label: "Report Time", value: reportTime, color: "text-zinc-50" },
-    { label: "Period", value: period, color: "text-zinc-50" },
-    { label: "Trades", value: totalTrades, color: "text-zinc-50" },
-    { label: "W / L / SL", value: `${winsVal} / ${lossesVal} / ${stopLosses}`, color: "text-zinc-50" },
-    { label: "Period PnL", value: fmtPnl(periodPnl), color: pnlColor(periodPnl) },
-    { label: "ROI", value: fmtPercent(roiVal), color: pnlColor(roiVal) },
-    { label: "Balance", value: fmtDollar(balance), color: "text-zinc-50" },
-    ...(pendingRedemption > 0 ? [{ label: "Pending Redemption", value: fmtDollar(pendingRedemption), color: "text-yellow-400" }] : []),
-  ];
-
-  return (
-    <section className="mb-8 md:mb-14">
-      <SectionHeader title="Last Hourly Report" />
-      <div className="space-y-4">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {statCards.map((card) => (
-            <GlassPanel key={card.label} variant="subtle">
-              <div className="relative p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary/60">{card.label}</p>
-                <p className={cn("mt-1.5 font-mono text-lg tabular-nums font-bold", card.color)}>
-                  {card.value}
-                </p>
-              </div>
-            </GlassPanel>
-          ))}
-        </div>
-
-        {dailyLimit > 0 && (
-          <GlassPanel variant="subtle">
-            <div className="relative p-4">
-              <div className="flex items-center justify-between text-xs mb-2">
-                <span className="font-semibold uppercase tracking-[0.15em] text-primary/60">Daily Spent</span>
-                <span className="font-mono text-zinc-400">{fmtDollar(dailySpent)} / {fmtDollar(dailyLimit)}</span>
-              </div>
-              <div className="h-2 w-full rounded-full bg-zinc-800">
-                <div
-                  className={cn(
-                    "h-2 rounded-full transition-all",
-                    spentPercent > 80 ? "bg-red-400" : spentPercent > 50 ? "bg-yellow-400" : "bg-emerald-400"
-                  )}
-                  style={{ width: `${spentPercent}%` }}
-                />
-              </div>
-            </div>
-          </GlassPanel>
-        )}
-
-        {activeStrategies.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.15em] text-primary/60">Active Strategies</span>
-            {activeStrategies.map((s) => {
-              const style = getStrategyStyle(String(s));
-              return (
-                <span key={String(s)} className={cn("rounded-md px-2 py-0.5 text-xs font-medium border", style.badge)}>
-                  {String(s)}
-                </span>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Section 4 — Cumulative PnL Chart (GlassPanel)
 // ---------------------------------------------------------------------------
 
-function PnlChart({ trades }: { trades: ActivityData["trades"] }) {
-  const chartData = useMemo(() => {
-    const resolved = trades
-      .filter((t) => t.final_outcome != null && t.pnl != null)
-      .sort((a, b) => new Date(a.placed_at).getTime() - new Date(b.placed_at).getTime());
+function PnlChart() {
+  const [chartData, setChartData] = useState<{ time: string; pnl: number }[] | null>(null);
 
-    if (resolved.length < 2) return null;
-
-    let cumPnl = 0;
-    return resolved.map((t) => {
-      cumPnl += pf(t.pnl);
-      return { time: fmtDateTime(t.placed_at), pnl: parseFloat(cumPnl.toFixed(2)) };
-    });
-  }, [trades]);
+  useEffect(() => {
+    fetch("/api/bot-pnl-chart")
+      .then((res) => res.json())
+      .then((data) => {
+        const trades: { placed_at: string; pnl: string }[] = data.trades ?? [];
+        if (trades.length < 2) { setChartData(null); return; }
+        let cumulative = 0;
+        setChartData(
+          trades.map((t) => {
+            cumulative += pf(t.pnl);
+            return { time: fmtDateTime(t.placed_at), pnl: parseFloat(cumulative.toFixed(2)) };
+          })
+        );
+      })
+      .catch(() => setChartData(null));
+  }, []);
 
   return (
     <section className="mb-8 md:mb-14">
@@ -1155,31 +926,6 @@ function LoadingSkeleton() {
         </div>
       </section>
 
-      {/* Strategy cards skeleton */}
-      <section className="mb-8 md:mb-14">
-        <div className="mb-5">
-          <div className="flex items-center gap-3">
-            <div className="h-3 w-40 animate-pulse rounded bg-zinc-800" />
-            <div className="h-px flex-1 bg-gradient-to-r from-zinc-800/60 to-transparent" />
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-4 md:p-6">
-              <div className="flex items-center gap-2">
-                <div className="h-5 w-16 animate-pulse rounded-md bg-zinc-800" />
-              </div>
-              <div className="mt-4 h-8 w-24 animate-pulse rounded bg-zinc-800" />
-              <div className="mt-4 flex items-center gap-4">
-                <div className="h-8 w-14 animate-pulse rounded bg-zinc-800" />
-                <div className="h-8 w-14 animate-pulse rounded bg-zinc-800" />
-                <div className="h-8 w-10 animate-pulse rounded bg-zinc-800" />
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* Chart skeleton */}
       <section className="mb-8 md:mb-14">
         <div className="mb-5">
@@ -1299,11 +1045,9 @@ export function BotMonitor() {
       ) : (
         <>
           <OverviewCards overview={overview} />
-          <StrategyCards strategies={overview.strategies} />
-          <HourlySummary data={overview.hourlySummary} />
-          <PnlChart trades={activity.trades} />
-          <ActivityFeed logs={activity.logs} />
+          <PnlChart />
           <TradeHistory initialTrades={activity.trades} />
+          <ActivityFeed logs={activity.logs} />
         </>
       )}
     </>
