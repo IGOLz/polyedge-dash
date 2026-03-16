@@ -183,16 +183,22 @@ function tradePnl(t: MomentumTrade): number {
   return val;
 }
 
+function isResolved(t: MomentumTrade): boolean {
+  return t.final_outcome === "win" || t.final_outcome === "loss" || t.final_outcome === "stop_loss" || !!t.stop_loss_triggered;
+}
+
 function computeTierSummary(trades: MomentumTrade[]): TierSummary {
   if (trades.length === 0) {
     return { totalTrades: 0, wins: 0, losses: 0, stopLosses: 0, totalPnl: 0, totalWagered: 0, winRate: 0, roi: 0, avgPnl: 0, avgEntryPrice: 0 };
   }
+  const resolved = trades.filter(isResolved);
   const wins = trades.filter((t) => t.final_outcome === "win").length;
   const losses = trades.filter((t) => t.final_outcome === "loss").length;
-  const stopLosses = trades.filter((t) => t.stop_loss_triggered).length;
-  const totalPnl = trades.reduce((s, t) => s + tradePnl(t), 0);
-  const totalWagered = trades.reduce((s, t) => s + pf(t.entry_price) * pf(t.bet_size_usd), 0);
-  const avgEntryPrice = trades.reduce((s, t) => s + pf(t.entry_price), 0) / trades.length;
+  const stopLosses = trades.filter((t) => t.stop_loss_triggered || t.final_outcome === "stop_loss").length;
+  const resolvedCount = wins + losses + stopLosses;
+  const totalPnl = resolved.reduce((s, t) => s + tradePnl(t), 0);
+  const totalWagered = resolved.reduce((s, t) => s + pf(t.entry_price) * pf(t.bet_size_usd), 0);
+  const avgEntryPrice = resolved.length > 0 ? resolved.reduce((s, t) => s + pf(t.entry_price), 0) / resolved.length : 0;
   return {
     totalTrades: trades.length,
     wins,
@@ -200,9 +206,9 @@ function computeTierSummary(trades: MomentumTrade[]): TierSummary {
     stopLosses,
     totalPnl,
     totalWagered,
-    winRate: trades.length > 0 ? (wins / trades.length) * 100 : 0,
+    winRate: resolvedCount > 0 ? (wins / resolvedCount) * 100 : 0,
     roi: totalWagered > 0 ? (totalPnl / totalWagered) * 100 : 0,
-    avgPnl: totalPnl / trades.length,
+    avgPnl: resolvedCount > 0 ? totalPnl / resolvedCount : 0,
     avgEntryPrice,
   };
 }
