@@ -180,7 +180,7 @@ function computeTierSummary(trades: MomentumTrade[]): TierSummary {
   const losses = trades.filter((t) => t.final_outcome === "loss").length;
   const stopLosses = trades.filter((t) => t.stop_loss_triggered).length;
   const totalPnl = trades.reduce((s, t) => s + pf(t.pnl), 0);
-  const totalWagered = trades.reduce((s, t) => s + pf(t.bet_size_usd), 0);
+  const totalWagered = trades.reduce((s, t) => s + pf(t.entry_price) * pf(t.bet_size_usd), 0);
   const avgEntryPrice = trades.reduce((s, t) => s + pf(t.entry_price), 0) / trades.length;
   return {
     totalTrades: trades.length,
@@ -675,7 +675,7 @@ export default function MomentumAnalyticsPage() {
                           market: t.market_type,
                           direction: t.direction,
                           entry_price: t.entry_price,
-                          bet_size: t.bet_size_usd,
+                          cost: (pf(t.entry_price) * pf(t.bet_size_usd)).toFixed(2),
                           outcome: outcomeLabel(t),
                           pnl: t.pnl ?? "",
                           momentum_value: parsed?.momentum_value ?? "",
@@ -719,7 +719,7 @@ export default function MomentumAnalyticsPage() {
                         <th className="w-20 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Market</th>
                         <th className="w-16 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Dir</th>
                         <th className="w-20 px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500">Entry</th>
-                        <th className="w-20 px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500">Size</th>
+                        <th className="w-20 px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500">Cost</th>
                         <th className="w-20 px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-zinc-500">Outcome</th>
                         <th className="w-20 px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500">PnL</th>
                         <th className="w-20 px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500">Momentum</th>
@@ -757,7 +757,7 @@ export default function MomentumAnalyticsPage() {
                                 <td className="w-20 px-3 py-3 text-sm text-zinc-300 truncate">{trade.market_type || "—"}</td>
                                 <td className="w-16 px-3 py-3 text-sm text-zinc-300">{trade.direction}</td>
                                 <td className="w-20 px-3 py-3 text-right font-mono text-sm tabular-nums text-zinc-200">{fmtPrice(pf(trade.entry_price))}</td>
-                                <td className="w-20 px-3 py-3 text-right font-mono text-sm tabular-nums text-zinc-200">${pf(trade.bet_size_usd).toFixed(2)}</td>
+                                <td className="w-20 px-3 py-3 text-right font-mono text-sm tabular-nums text-zinc-200">${(pf(trade.entry_price) * pf(trade.bet_size_usd)).toFixed(2)}</td>
                                 <td className="w-20 px-3 py-3 text-center">
                                   <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${outcomeBadge(trade)}`}>
                                     {outcomeLabel(trade)}
