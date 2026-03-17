@@ -37,9 +37,18 @@ export async function GET() {
     );
 
     const SIGNAL_KEYS = [
+      // Shared
+      "entry_price", "shares", "bet_cost", "bet_size", "stop_loss_price",
+      "balance_at_signal", "seconds_elapsed", "seconds_remaining",
+      // M4 volatility
+      "up_price", "down_price", "spread", "volatility_avg", "volatility_up",
+      "volatility_down", "eval_second",
+      // M3 spike reversion
+      "spike_direction", "spike_price", "spike_tick", "reversion_target",
+      "reversion_tick", "reversion_ticks_elapsed",
+      // Legacy momentum
       "price_a_seconds", "price_b_seconds", "price_a", "price_b", "price_open",
-      "momentum_value", "entry_price", "seconds_elapsed", "shares", "bet_cost",
-      "stop_loss_price", "balance_at_signal",
+      "momentum_value",
     ] as const;
 
     const headers = [

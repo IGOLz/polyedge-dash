@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { signOut } from "next-auth/react";
+import { signIn, signOut, useSession } from "next-auth/react";
 import { Navbar } from "@/components/navbar";
-import { LogOut, AlertTriangle } from "lucide-react";
+import { LogOut, AlertTriangle, Lock } from "lucide-react";
 
 interface ConfigRow {
   key: string;
@@ -153,13 +153,96 @@ function SavedIndicator({ show }: { show: boolean }) {
 // Control page
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Login modal (shown when not authenticated)
+// ---------------------------------------------------------------------------
+
+function LoginModal() {
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setBusy(true);
+
+    const result = await signIn("credentials", {
+      password,
+      redirect: false,
+    });
+
+    if (result?.error) {
+      setError("Invalid password");
+      setBusy(false);
+    }
+    // on success useSession() will update automatically
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm">
+      <div className="w-full max-w-sm mx-4">
+        <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/50 backdrop-blur-sm p-8">
+          <div className="mb-6 text-center">
+            <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+              <Lock className="h-5 w-5 text-primary" />
+            </div>
+            <h1 className="text-2xl font-bold text-primary">PolyEdge</h1>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Enter password to access control panel
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-zinc-300">
+                Password
+              </span>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter dashboard password"
+                className="w-full rounded-lg border border-zinc-800/60 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 outline-none transition-colors focus:border-primary/50 focus:ring-1 focus:ring-primary/30"
+              />
+            </label>
+
+            {error && (
+              <p className="text-sm font-medium text-red-400">{error}</p>
+            )}
+
+            <button
+              type="submit"
+              disabled={busy || !password}
+              className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-medium text-zinc-950 transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {busy ? "Signing in..." : "Sign in"}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Control page
+// ---------------------------------------------------------------------------
+
 export default function ControlPage() {
+  const { status } = useSession();
   const [config, setConfig] = useState<ConfigRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [savedKeys, setSavedKeys] = useState<Record<string, boolean>>({});
   const [paramValues, setParamValues] = useState<Record<string, string>>({});
 
+  const authenticated = status === "authenticated";
+
   const fetchConfig = useCallback(async () => {
+    if (!authenticated) {
+      setLoading(false);
+      return;
+    }
     try {
       const res = await fetch("/api/bot-config");
       if (res.ok) {
@@ -174,7 +257,7 @@ export default function ControlPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [authenticated]);
 
   useEffect(() => {
     fetchConfig();
@@ -204,7 +287,17 @@ export default function ControlPage() {
     }
   }
 
-  if (loading) {
+  // Show login modal when not authenticated
+  if (status === "unauthenticated") {
+    return (
+      <>
+        <Navbar />
+        <LoginModal />
+      </>
+    );
+  }
+
+  if (status === "loading" || loading) {
     return (
       <>
         <Navbar />
