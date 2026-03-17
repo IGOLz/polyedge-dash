@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
+import { PNL_SQL } from "@/lib/pnl";
 
 type PnlRow = {
   placed_at: string;
@@ -11,10 +12,9 @@ type PnlRow = {
 export async function GET() {
   try {
     const rows = await query<PnlRow>(`
-      SELECT placed_at, pnl
+      SELECT placed_at, ${PNL_SQL} as pnl
       FROM bot_trades
-      WHERE pnl IS NOT NULL
-        AND final_outcome IN ('win', 'loss', 'stop_loss')
+      WHERE final_outcome IN ('win', 'loss', 'stop_loss')
       ORDER BY placed_at ASC
     `);
     return NextResponse.json({ trades: rows });

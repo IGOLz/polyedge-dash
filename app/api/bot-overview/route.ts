@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { unstable_cache } from "next/cache";
 import { query } from "@/lib/db";
+import { PNL_SQL } from "@/lib/pnl";
 
 type OverallStats = {
   total_trades: string;
@@ -42,9 +43,9 @@ async function fetchBotOverview() {
           COUNT(*) FILTER (WHERE status = 'filled' AND final_outcome IS NULL) as pending,
           COUNT(*) FILTER (WHERE status = 'fok_no_fill') as no_fills,
           COUNT(*) FILTER (WHERE status LIKE 'skipped%') as skipped,
-          SUM(pnl) FILTER (WHERE pnl IS NOT NULL) as total_pnl,
+          SUM(${PNL_SQL}) FILTER (WHERE final_outcome IN ('win','loss','stop_loss')) as total_pnl,
           SUM(bet_size_usd) FILTER (WHERE status = 'filled') as total_bet,
-          AVG(pnl) FILTER (WHERE final_outcome IS NOT NULL) as avg_pnl_per_trade
+          AVG(${PNL_SQL}) FILTER (WHERE final_outcome IS NOT NULL) as avg_pnl_per_trade
         FROM bot_trades
       `),
       query<Last24hStats>(`
@@ -52,7 +53,7 @@ async function fetchBotOverview() {
           COUNT(*) FILTER (WHERE status = 'filled') as trades_24h,
           COUNT(*) FILTER (WHERE status = 'filled' AND final_outcome = 'win') as wins_24h,
           COUNT(*) FILTER (WHERE status = 'filled' AND final_outcome = 'loss') as losses_24h,
-          SUM(pnl) FILTER (WHERE pnl IS NOT NULL) as pnl_24h,
+          SUM(${PNL_SQL}) FILTER (WHERE final_outcome IN ('win','loss','stop_loss')) as pnl_24h,
           SUM(bet_size_usd) FILTER (WHERE status = 'filled') as bet_24h
         FROM bot_trades
         WHERE placed_at > NOW() - INTERVAL '24 hours'
@@ -62,7 +63,7 @@ async function fetchBotOverview() {
           COUNT(*) FILTER (WHERE status = 'filled') as trades_yesterday,
           COUNT(*) FILTER (WHERE status = 'filled' AND final_outcome = 'win') as wins_yesterday,
           COUNT(*) FILTER (WHERE status = 'filled' AND final_outcome = 'loss') as losses_yesterday,
-          SUM(pnl) FILTER (WHERE pnl IS NOT NULL) as pnl_yesterday
+          SUM(${PNL_SQL}) FILTER (WHERE final_outcome IN ('win','loss','stop_loss')) as pnl_yesterday
         FROM bot_trades
         WHERE placed_at > NOW() - INTERVAL '48 hours'
           AND placed_at <= NOW() - INTERVAL '24 hours'

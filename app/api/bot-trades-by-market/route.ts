@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
+import { PNL_SQL } from "@/lib/pnl";
 
 type MarketTrade = {
   [key: string]: unknown;
@@ -32,7 +33,7 @@ export async function GET(request: Request) {
     const trades = await query<MarketTrade>(
       `SELECT
         id, direction, entry_price, bet_size_usd, status,
-        final_outcome, pnl, placed_at, resolved_at,
+        final_outcome, ${PNL_SQL} as pnl, placed_at, resolved_at,
         confidence_multiplier, stop_loss_price, stop_loss_triggered,
         strategy_name
       FROM bot_trades

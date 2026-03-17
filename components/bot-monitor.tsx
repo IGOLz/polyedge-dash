@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   XAxis,
@@ -25,6 +25,8 @@ import {
   Power,
   AlertCircle,
   Ghost,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { SectionHeader } from "@/components/section-header";
 import { DownloadButton } from "@/components/download-button";
@@ -82,6 +84,7 @@ interface TradeRow {
   stop_loss_triggered: boolean | null;
   stop_loss_order_id: string | null;
   notes: string | null;
+  signal_data: Record<string, unknown> | null;
 }
 
 interface ActivityData {
@@ -109,6 +112,25 @@ function fmtPnl(val: number): string {
   if (val === 0) return "$0.00";
   const prefix = val >= 0 ? "$" : "-$";
   return `${prefix}${Math.abs(val).toFixed(2)}`;
+}
+
+/** Recalculate PnL from trade parameters (Polymarket binary options). */
+function calcPnl(t: TradeRow): number | null {
+  if (!t.final_outcome) return null;
+  const entry = parseFloat(t.entry_price);
+  const betSize = parseFloat(t.bet_size_usd);
+  if (Number.isNaN(entry) || Number.isNaN(betSize) || entry === 0) return null;
+  const shares = t.shares ? parseFloat(t.shares) : betSize / entry;
+
+  if (t.final_outcome === "win") {
+    return shares * (1.0 - entry);
+  } else if (t.final_outcome === "loss") {
+    return -betSize;
+  } else if (t.final_outcome === "stop_loss") {
+    const slPrice = t.stop_loss_price ? parseFloat(t.stop_loss_price) : 0;
+    return (slPrice - entry) * shares;
+  }
+  return null;
 }
 
 function fmtDollar(val: number): string {
@@ -670,12 +692,54 @@ function buildMarketUrl(t: TradeRow): string {
   return `/markets?type=${encodeURIComponent(t.market_type)}&market_id=${encodeURIComponent(t.market_id)}`;
 }
 
+function SignalDataPanel({ data }: { data: Record<string, unknown> }) {
+  const items: { label: string; key: string; format?: (v: unknown) => string }[] = [
+    { label: "Price A", key: "price_a", format: (v) => fmtPrice(Number(v)) },
+    { label: "Price B", key: "price_b", format: (v) => fmtPrice(Number(v)) },
+    { label: "Price Open", key: "price_open", format: (v) => fmtPrice(Number(v)) },
+    { label: "Momentum", key: "momentum_value", format: (v) => { const n = Number(v); return `${n >= 0 ? "+" : ""}${n.toFixed(4)}`; } },
+    { label: "Entry Price", key: "entry_price", format: (v) => fmtPrice(Number(v)) },
+    { label: "Shares", key: "shares", format: (v) => Number(v).toFixed(2) },
+    { label: "Bet Cost", key: "bet_cost", format: (v) => fmtDollar(Number(v)) },
+    { label: "Stop Loss", key: "stop_loss_price", format: (v) => fmtPrice(Number(v)) },
+    { label: "Balance at Signal", key: "balance_at_signal", format: (v) => fmtDollar(Number(v)) },
+    { label: "Price A Offset", key: "price_a_seconds", format: (v) => `${v}s` },
+    { label: "Price B Offset", key: "price_b_seconds", format: (v) => `${v}s` },
+    { label: "Seconds Elapsed", key: "seconds_elapsed", format: (v) => `${v}s` },
+  ];
+
+  const available = items.filter((i) => data[i.key] != null);
+  if (available.length === 0) return <p className="text-xs text-zinc-500">No signal data available.</p>;
+
+  return (
+    <div className="grid grid-cols-2 gap-x-8 gap-y-1.5 sm:grid-cols-3 md:grid-cols-4">
+      {available.map((item) => {
+        const raw = data[item.key];
+        const formatted = item.format ? item.format(raw) : String(raw);
+        const isMomentum = item.key === "momentum_value";
+        return (
+          <div key={item.key} className="flex items-baseline justify-between gap-2">
+            <span className="text-xs text-zinc-500">{item.label}</span>
+            <span className={cn(
+              "font-mono text-sm tabular-nums",
+              isMomentum ? (Number(raw) >= 0 ? "text-emerald-400" : "text-red-400") : "text-zinc-200"
+            )}>
+              {formatted}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function TradeHistory({ initialTrades }: { initialTrades: TradeRow[] }) {
   const router = useRouter();
   const [filter, setFilter] = useState("all");
   const [allTrades, setAllTrades] = useState<TradeRow[]>(initialTrades);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const sentinelRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const offsetRef = useRef(initialTrades.length);
@@ -738,7 +802,17 @@ function TradeHistory({ initialTrades }: { initialTrades: TradeRow[] }) {
     return () => observer.disconnect();
   }, [fetchMore]);
 
-  const COL_SPAN = 11;
+  const COL_SPAN = 12;
+
+  const toggleExpand = useCallback((id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
 
   return (
     <section className="mb-8 md:mb-14">
@@ -753,6 +827,7 @@ function TradeHistory({ initialTrades }: { initialTrades: TradeRow[] }) {
             <table className="w-full table-fixed">
               <thead className="bg-zinc-950">
                 <tr className="border-b border-zinc-800/40">
+                  <th className="w-8 px-1 py-2.5" />
                   <th className="w-32 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Time</th>
                   <th className="w-24 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Market</th>
                   <th className="w-36 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">Strategy</th>
@@ -779,28 +854,36 @@ function TradeHistory({ initialTrades }: { initialTrades: TradeRow[] }) {
                   </tr>
                 ) : (
                   filtered.map((t, idx) => {
-                    // PnL: use DB value, fallback to client-side calc for stop_loss
-                    let tPnl = pf(t.pnl);
-                    if ((!t.pnl || tPnl === 0) && t.final_outcome === "stop_loss" && t.stop_loss_price && t.shares) {
-                      tPnl = (parseFloat(t.stop_loss_price) - parseFloat(t.entry_price)) * parseFloat(t.shares);
-                    }
-                    const hasPnl = t.final_outcome != null && (t.pnl != null || t.final_outcome === "stop_loss");
+                    // PnL: recalculate from trade parameters (stored pnl is unreliable)
+                    const calculated = calcPnl(t);
+                    const tPnl = calculated ?? 0;
+                    const hasPnl = calculated != null;
                     const style = getStrategyStyle(t.strategy_name);
                     const sig = extractSignalData(t);
                     const cm = t.confidence_multiplier != null ? parseFloat(t.confidence_multiplier) : (sig.confidenceMultiplier ?? null);
 
                     const marketUrl = buildMarketUrl(t);
+                    const isExpanded = expandedIds.has(t.id);
+                    const hasSignalData = t.signal_data && Object.keys(t.signal_data).length > 0;
 
                     return (
+                      <React.Fragment key={t.id}>
                       <tr
-                        key={t.id}
-                        onClick={marketUrl ? () => router.push(marketUrl) : undefined}
+                        onClick={(e) => hasSignalData ? toggleExpand(t.id, e) : (marketUrl ? router.push(marketUrl) : undefined)}
                         className={cn(
                           "border-b border-zinc-800/20 hover:bg-zinc-800/20 transition-colors",
                           idx % 2 === 1 && "bg-zinc-900/30",
-                          marketUrl && "cursor-pointer"
+                          (hasSignalData || marketUrl) && "cursor-pointer",
+                          isExpanded && "bg-zinc-800/30"
                         )}
                       >
+                        <td className="w-8 px-1 py-3 text-center">
+                          {hasSignalData ? (
+                            isExpanded
+                              ? <ChevronDown size={14} className="text-zinc-400 inline-block" />
+                              : <ChevronRight size={14} className="text-zinc-600 inline-block" />
+                          ) : null}
+                        </td>
                         <td className="w-32 px-3 py-3 text-sm tabular-nums text-zinc-400 truncate">{fmtDateTime(t.placed_at)}</td>
                         <td className="w-24 px-3 py-3 text-sm text-zinc-300 truncate">{fmtMarket(t.market_type)}</td>
                         <td className="w-36 px-3 py-3">
@@ -874,6 +957,26 @@ function TradeHistory({ initialTrades }: { initialTrades: TradeRow[] }) {
                           )}
                         </td>
                       </tr>
+                      {isExpanded && hasSignalData && (
+                        <tr className="bg-zinc-900/60 border-b border-zinc-800/20">
+                          <td colSpan={COL_SPAN} className="px-6 py-4">
+                            <div className="flex items-center gap-2 mb-3">
+                              <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Signal Data</span>
+                              {marketUrl && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); router.push(marketUrl); }}
+                                  className="text-xs text-primary/70 hover:text-primary transition-colors"
+                                >
+                                  View Market →
+                                </button>
+                              )}
+                            </div>
+                            <SignalDataPanel data={t.signal_data as Record<string, unknown>} />
+                          </td>
+                        </tr>
+                      )}
+                      </React.Fragment>
                     );
                   })
                 )}

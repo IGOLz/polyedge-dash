@@ -22,6 +22,7 @@ type BotTrade = {
   stop_loss_triggered: boolean | null;
   stop_loss_order_id: string | null;
   notes: string | null;
+  signal_data: Record<string, unknown> | null;
 };
 
 type BotLog = {
@@ -53,7 +54,7 @@ export async function GET(request: Request) {
       id, market_id, market_type, strategy_name, direction,
       entry_price, bet_size_usd, status, final_outcome, pnl,
       placed_at, resolved_at, confidence_multiplier,
-      shares, stop_loss_price, stop_loss_triggered, stop_loss_order_id, notes
+      shares, stop_loss_price, stop_loss_triggered, stop_loss_order_id, notes, signal_data
     FROM bot_trades`;
     const tradeParams: (string | number)[] = [];
     let paramIdx = 1;

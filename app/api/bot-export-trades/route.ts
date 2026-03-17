@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
+import { PNL_SQL } from "@/lib/pnl";
 
 type BotTrade = {
   id: string;
@@ -15,6 +16,7 @@ type BotTrade = {
   pnl: string | null;
   placed_at: string;
   resolved_at: string | null;
+  signal_data: Record<string, unknown> | null;
 };
 
 function escapeCsv(val: string | null | undefined): string {
@@ -29,22 +31,31 @@ function escapeCsv(val: string | null | undefined): string {
 export async function GET() {
   try {
     const trades = await query<BotTrade>(
-      `SELECT id, market_type, strategy_name, direction, entry_price, bet_size_usd, status, final_outcome, pnl, placed_at, resolved_at
+      `SELECT id, market_type, strategy_name, direction, entry_price, bet_size_usd, status, final_outcome, ${PNL_SQL} as pnl, placed_at, resolved_at, signal_data
        FROM bot_trades
        ORDER BY placed_at DESC`
     );
 
+    const SIGNAL_KEYS = [
+      "price_a_seconds", "price_b_seconds", "price_a", "price_b", "price_open",
+      "momentum_value", "entry_price", "seconds_elapsed", "shares", "bet_cost",
+      "stop_loss_price", "balance_at_signal",
+    ] as const;
+
     const headers = [
       "ID", "Market Type", "Strategy", "Direction", "Entry Price",
       "Bet Size (USD)", "Status", "Outcome", "PnL", "Placed At", "Resolved At",
+      ...SIGNAL_KEYS.map((k) => `signal_${k}`),
     ];
 
-    const rows = trades.map((t) =>
-      [
+    const rows = trades.map((t) => {
+      const sd = t.signal_data ?? {};
+      return [
         t.id, t.market_type, t.strategy_name, t.direction, t.entry_price,
         t.bet_size_usd, t.status, t.final_outcome, t.pnl, t.placed_at, t.resolved_at,
-      ].map(escapeCsv).join(",")
-    );
+        ...SIGNAL_KEYS.map((k) => sd[k] != null ? String(sd[k]) : null),
+      ].map(escapeCsv).join(",");
+    });
 
     const csv = [headers.join(","), ...rows].join("\n");
     const date = new Date().toISOString().slice(0, 10);
